@@ -198,7 +198,9 @@ class GraphProcessor(
             nodeType = NodeType.SIMPLE,
             toRegionName = region?.name ?: "root",
             toRegionID = region?.id ?: "root",
-            serializeWithIDs = IDs)
+            serializeWithIDs = IDs,
+            node,
+            graph = targetGraph)
         stage.deltaSequence.pushOperation(op)
     }
 
@@ -220,7 +222,9 @@ class GraphProcessor(
             nodeType = NodeType.REGION,
             toRegionName = region?.name ?: "root",
             toRegionID = region?.id ?: "root",
-            serializeWithIDs = IDs)
+            serializeWithIDs = IDs,
+            node,
+            graph = targetGraph)
         stage.deltaSequence.pushOperation(op)
     }
 

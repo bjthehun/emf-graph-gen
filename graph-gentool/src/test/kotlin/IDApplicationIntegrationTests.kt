@@ -151,7 +151,6 @@ class IDApplicationIntegrationTests {
         val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0, true)
         val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1, true)
 
-
         Assertions.assertFalse(inputDeltaSequenceB0.deepEquals(inputDeltaSequenceB1))
         Assertions.assertFalse(inputDeltaSequenceB1.deepEquals(inputDeltaSequenceB0))
 

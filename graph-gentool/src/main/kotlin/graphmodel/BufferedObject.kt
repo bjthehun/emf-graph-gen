@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Karl Kegel
+ * Copyright 2026 Karl Kegel, Benedikt Jutz
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package graphmodel
 
-import ecore.DeepComparable
-import ecore.IDComparable
-import ecore.EObjectSource
 import org.eclipse.emf.ecore.EObject
+import ecore.EObjectSource
 import util.IndexedComparable
 
-abstract class Node(val id: String?, val name: String, val serializeWithIDs: Boolean = false) : 
-    DeepComparable, IDComparable, BufferedObject(){
-    abstract fun deepCopy(): Node
-
-    override fun idEquals(other: Any): Boolean {
-        if(!serializeWithIDs) return false
-        return other is Node && other.serializeWithIDs && id == other.id
-    }
-
+/**
+ * A BufferedObject buffers an EObject when generate is called on it.
+ */
+abstract class BufferedObject: EObjectSource, IndexedComparable()  {
+    var buffer: EObject? = null
+    public get
 }

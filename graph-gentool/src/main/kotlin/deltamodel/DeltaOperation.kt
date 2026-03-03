@@ -26,6 +26,7 @@ import org.eclipse.emf.common.util.URI
 import util.IndexedComparable
 import java.util.*
 import tools.vitruv.change.atomic.EChange
+import tools.vitruv.change.atomic.TypeInferringAtomicEChangeFactory
 
 abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, IDComparable, IndexedComparable() {
 
@@ -36,16 +37,15 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
 
     abstract fun flatten(): List<DeltaOperation>
 
-    fun toVitruviusEChanges(): List<EChange<Any>> {
+    open fun toVitruviusEChanges(): List<EChange<Any>> {
         val changes = ArrayList<EChange<Any>>()
-        // Set up EcoreMetamodelHandler for model element generation
-        val metamodelHandler = EcoreMetamodelHandler(GRAPH_METAMODEL_URI())
-
         // Get Edge EObject
         return changes
     }
 
-    fun getAtomicLength() = flatten().size
+    fun getAtomicLength(): Int  {
+        return flatten().size
+    }
 
     override fun idEquals(other: Any): Boolean {
         if(other is DeltaOperation){
@@ -60,12 +60,19 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
          * Change to "labelgraph" when disabling IDs
          */
         const val GRAPH_METAMODEL_TYPE = "idlabelgraph"
+
         /**
-         * Constant URI for the graph metamodel
+         * Graph metamodel handler
          */
-        fun GRAPH_METAMODEL_URI() = URI.createFileURI(
-            object {}.javaClass.getResource(GRAPH_METAMODEL_TYPE + ".ecore")!!.path
+        var GRAPH_METAMODEL_HANDLER: EcoreMetamodelHandler = EcoreMetamodelHandler(
+            URI.createFileURI(
+                object {}.javaClass.getResource("/" + GRAPH_METAMODEL_TYPE + ".ecore")!!.path
+            )
         )
+        /**
+         * Atomic Change factory
+         */
+        fun ATOMIC_CHANGE_FACTORY() = TypeInferringAtomicEChangeFactory.getInstance()
     
         fun generateId(): String {
             return UUID.randomUUID().toString()

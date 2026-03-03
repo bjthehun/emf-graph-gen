@@ -29,6 +29,10 @@ import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.common.util.URI
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.TreeMap
 
 open class EcoreMetamodelHandler(metamodel: URI) {

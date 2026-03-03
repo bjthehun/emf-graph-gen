@@ -33,7 +33,7 @@ class SimpleNode(id: String?, name: String, var label: Label, serializeWithIDs: 
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                           label: EEnum?, nodeType: EEnum?): EObject {
-        val node = factory.create(classes[description])
+        val node = buffer ?: factory.create(classes[description])
         val nameAttribute = node.eClass().getEStructuralFeature("name")
         val labelAttribute = node.eClass().getEStructuralFeature("label")
 

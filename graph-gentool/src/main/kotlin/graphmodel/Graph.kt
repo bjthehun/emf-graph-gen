@@ -34,10 +34,9 @@ class Graph(
     private val predef: EObject? = null,
     val isRoot: Boolean = false,
     val serializeWithIDs: Boolean = false
-) : EObjectSource, DeepComparable, IDComparable, IndexedComparable() {
+) : DeepComparable, IDComparable, BufferedObject() {
 
     private val description = "Graph"
-    private var buffer: EObject? = predef
 
     init {
         if (nodes.isEmpty() && edges.isEmpty() && predef != null) {

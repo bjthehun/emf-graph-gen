@@ -20,11 +20,14 @@ import graphmodel.Graph
 import graphmodel.Node
 import graphmodel.Region
 import graphmodel.SimpleNode
+import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EReference
 import org.eclipse.emf.ecore.impl.EEnumLiteralImpl
+import tools.vitruv.change.atomic.EChange
 
 /**
  * Add a [Node] ([SimpleNode] or [Region]) to a specified Region.
@@ -36,7 +39,9 @@ class AddNode(/*all*/       operationID: String,
               /*all*/       private val nodeType: NodeType,
               /*no id*/     val toRegionName: String? = "root",
               /*with id*/   val toRegionID: String? = "root",
-              /*all*/       val serializeWithIDs: Boolean) : DeltaOperation(operationID) {
+              /*all*/       val serializeWithIDs: Boolean,
+              /*one-way */  val node: Node?,
+              /*one-way */  val graph: Graph?) : DeltaOperation(operationID) {
 
     private val description = "AddNode"
 
@@ -67,6 +72,44 @@ class AddNode(/*all*/       operationID: String,
 
         this.buffer = operation
         return operation
+    }
+
+    override fun toVitruviusEChanges(): List<EChange<Any>> {
+        // Setup graph model factory
+        val graphFactory = GRAPH_METAMODEL_HANDLER
+        val classes = graphFactory.getClassMap()
+        val factory = graphFactory.getModelFactory()
+        val greyEnum = graphFactory.getEnumMap()["Label"]!!
+        val actualNodeType = graphFactory.getEnumMap()[nodeType.name]
+
+        // Create node EObject
+        val nodeElement = node!!.generate(classes, factory, setOf("Node"),
+             label = if (nodeType == NodeType.SIMPLE) greyEnum else null,
+            actualNodeType)
+        val nodeEClass = nodeElement.eClass()
+        // Create graph EObject
+        val graphElement = graph!!.generate(classes, factory, setOf(), null, null)
+        // Setup change model factory
+        val changeFactory = ATOMIC_CHANGE_FACTORY()
+        val changes = ArrayList<EChange<Any>>()
+
+        // 1. Create node
+        changes.add(changeFactory.createCreateEObjectChange(nodeElement) as EChange<Any>)
+        // 2. Set id
+        changes.add(changeFactory.createReplaceSingleAttributeChange(
+            nodeElement,
+            nodeEClass.getEStructuralFeature("id") as EAttribute,
+            null,
+            node.id
+        ))
+        // 3. Add to graph
+        changes.add(changeFactory.createInsertReferenceChange(
+            graphElement,
+            graphElement.eClass().getEStructuralFeature("nodes") as EReference,
+            nodeElement,
+            0
+        ))
+        return changes
     }
 
     override fun deepEquals(other: Any): Boolean {
@@ -104,7 +147,7 @@ class AddNode(/*all*/       operationID: String,
                 toRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegion"), true) as String
             }
 
-            return AddNode(id, nodeName, nodeID, nodeType, toRegionName, toRegionID, serializeWithIDs)
+            return AddNode(id, nodeName, nodeID, nodeType, toRegionName, toRegionID, serializeWithIDs, null, null)
         }
 
     }

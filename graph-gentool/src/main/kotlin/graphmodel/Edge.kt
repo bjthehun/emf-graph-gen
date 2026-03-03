@@ -29,7 +29,7 @@ class Edge(
     val a: Node,
     val b: Node,
     private val serializeWithIDs: Boolean = false
-) : EObjectSource, DeepComparable, IDComparable, IndexedComparable() {
+) : BufferedObject(), DeepComparable, IDComparable {
 
     private val description = "Edge"
 
@@ -42,7 +42,7 @@ class Edge(
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                                    label: EEnum?, nodeType: EEnum?): EObject {
 
-        val edge = factory.create(classes[description])
+        val edge = buffer ?: factory.create(classes[description])
 
         if(serializeWithIDs){
             val idAttribute = edge.eClass().getEStructuralFeature("id")
@@ -51,6 +51,7 @@ class Edge(
 
         val nodesReferences = edge.eClass().getEStructuralFeature("nodes")
         (edge.eGet(nodesReferences) as java.util.List<Any>).addAll(listOf(a.buffer!!, b.buffer!!))
+        buffer = edge
         return edge
     }
 

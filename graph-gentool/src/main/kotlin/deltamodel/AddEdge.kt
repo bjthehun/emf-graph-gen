@@ -23,7 +23,12 @@ import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EAttribute
+import org.eclipse.emf.ecore.EReference
 import tools.vitruv.change.atomic.EChange
+import tools.vitruv.change.atomic.TypeInferringAtomicEChangeFactory
+import ecore.EcoreMetamodelHandler
+
 
 /**
  * Add a new [Edge].
@@ -44,7 +49,6 @@ class AddEdge(/*all*/       id: String,
     private val description = "AddEdge"
 
     override fun flatten(): List<DeltaOperation> {
-        toVitruviusEChanges()
         return listOf(this)
     }
 
@@ -75,6 +79,45 @@ class AddEdge(/*all*/       id: String,
 
         this.buffer = operation
         return operation
+    }
+   
+    override fun toVitruviusEChanges(): List<EChange<Any>> {
+        val changes = ArrayList<EChange<Any>>()
+        // Set up EcoreMetamodelHandler for model element generation
+        val metamodelHandler = GRAPH_METAMODEL_HANDLER
+        val classes   = metamodelHandler.getClassMap()
+        val factory  = metamodelHandler.getModelFactory()
+        // Set up EEchangeFactory
+        val changeFactory = TypeInferringAtomicEChangeFactory.getInstance()
+
+        // Get Edge EObject
+        val edge = newEdge!!.generate(classes, factory, setOf("Edge"), null, null)
+
+        // Change 1: CreateEdge
+        changes.add(changeFactory.createCreateEObjectChange(edge) as EChange<Any>)
+        // Change 2: SetEAttribute
+        val idAttribute = edge.eClass().getEStructuralFeature("id") as EAttribute
+        changes.add(changeFactory.createReplaceSingleAttributeChange(
+            edge,
+            idAttribute,
+            null,
+            edge.eGet(idAttribute))
+        )
+
+        // Get Node Objects
+        val nodeA = newEdge.a.generate(classes, factory, setOf("Node"), null, null)
+        val nodeB = newEdge.b.generate(classes, factory, setOf("Node"), null, null)
+        // Changes 3 and 4: InsertEReference
+        val nodesReference = edge.eClass().getEStructuralFeature("nodes") as EReference
+        changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeA, 0))
+        changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeB, 0))
+
+        // Identify containing graph
+        val graph = edge.eContainer();
+        // Change 5: InsertEReference
+        changes.add(changeFactory.createInsertReferenceChange(graph, graph.eClass().getEStructuralFeature("edges") as EReference, edge, 0))
+
+        return changes
     }
 
     override fun deepEquals(other: Any): Boolean {

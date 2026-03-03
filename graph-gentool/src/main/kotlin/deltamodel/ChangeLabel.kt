@@ -23,6 +23,7 @@ import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.impl.EEnumLiteralImpl
+import tools.vitruv.change.atomic.EChange
 
 /**
  * Change the [Label] value of an existing [Node].
@@ -62,6 +63,12 @@ class ChangeLabel(/*all*/       id: String,
 
         this.buffer = operation
         return operation
+    }
+
+    override fun toVitruviusEChanges(): List<EChange<Any>> {
+        val eObjectCreator = GRAPH_METAMODEL_HANDLER
+        val changes = ArrayList<EChange<Any>>()
+        return changes
     }
 
     override fun deepEquals(other: Any): Boolean {
