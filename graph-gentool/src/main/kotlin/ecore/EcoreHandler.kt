@@ -28,64 +28,13 @@ import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
 import java.util.*
 
-class EcoreHandler(metamodel: URI, model: URI, registryExtension: String) {
+class EcoreHandler(metamodel: URI, model: URI, registryExtension: String): EcoreMetamodelHandler(metamodel) {
 
-    private var resourceSet: ResourceSet? = null
-    private var metamodelRoot: EPackage? = null
     private var modelResource: Resource? = null
 
     init {
-        Resource.Factory.Registry.INSTANCE.extensionToFactoryMap["ecore"] = EcoreResourceFactoryImpl()
-        Resource.Factory.Registry.INSTANCE.extensionToFactoryMap["xmi"] = XMIResourceFactoryImpl()
         Resource.Factory.Registry.INSTANCE.extensionToFactoryMap[registryExtension] = XMIResourceFactoryImpl()
-
-        resourceSet = ResourceSetImpl()
-        val extendedMetaData: ExtendedMetaData = BasicExtendedMetaData(resourceSet!!.packageRegistry)
-        resourceSet!!.loadOptions[XMLResource.OPTION_EXTENDED_META_DATA] = extendedMetaData
-
-        val metamodelResource = resourceSet!!.getResource(metamodel, true)
-
-        val eObject = metamodelResource!!.contents[0]
-        if (eObject is EPackage) {
-            metamodelRoot = eObject
-            resourceSet!!.packageRegistry[metamodelRoot!!.nsURI] = metamodelRoot!!
-        } else {
-            throw Exception("Unsupported ECORE specification.")
-        }
-
-        val mph = object : MissingPackageHandler {
-            override fun getPackage(p0: String?): EPackage {
-                return metamodelRoot as EPackage
-            }
-        }
-
-        resourceSet!!.loadOptions[XMLResource.OPTION_MISSING_PACKAGE_HANDLER] = mph
-
         modelResource = resourceSet!!.getResource(model, true)
-    }
-
-    fun getModelFactory(): EFactory {
-        return metamodelRoot!!.eFactoryInstance
-    }
-
-    fun getClassMap(): Map<String, EClass> {
-        val metaMap: MutableMap<String, EClass> = TreeMap()
-        for (e in metamodelRoot!!.eClassifiers) {
-            if (e is EClass) {
-                metaMap[e.getName()] = e
-            }
-        }
-        return metaMap
-    }
-
-    fun getEnumMap(): Map<String, EEnum> {
-        val enumMap: MutableMap<String, EEnum> = TreeMap()
-        for (e in metamodelRoot!!.eClassifiers) {
-            if (e is EEnum) {
-                enumMap[e.getName()] = e
-            }
-        }
-        return enumMap
     }
 
     fun getModelRoot(): EObject {

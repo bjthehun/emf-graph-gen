@@ -19,9 +19,13 @@ package deltamodel
 import ecore.DeepComparable
 import ecore.EObjectSource
 import ecore.IDComparable
+import ecore.EcoreHandler
+import ecore.EcoreMetamodelHandler
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.common.util.URI
 import util.IndexedComparable
 import java.util.*
+import tools.vitruv.change.atomic.EChange
 
 abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, IDComparable, IndexedComparable() {
 
@@ -31,6 +35,15 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
     var buffer: EObject? = null
 
     abstract fun flatten(): List<DeltaOperation>
+
+    fun toVitruviusEChanges(): List<EChange<Any>> {
+        val changes = ArrayList<EChange<Any>>()
+        // Set up EcoreMetamodelHandler for model element generation
+        val metamodelHandler = EcoreMetamodelHandler(GRAPH_METAMODEL_URI())
+
+        // Get Edge EObject
+        return changes
+    }
 
     fun getAtomicLength() = flatten().size
 
@@ -42,11 +55,20 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
     }
 
     companion object {
-
+        /**
+         * Constant type of graph metamodel
+         * Change to "labelgraph" when disabling IDs
+         */
+        const val GRAPH_METAMODEL_TYPE = "idlabelgraph"
+        /**
+         * Constant URI for the graph metamodel
+         */
+        fun GRAPH_METAMODEL_URI() = URI.createFileURI(
+            object {}.javaClass.getResource(GRAPH_METAMODEL_TYPE + ".ecore")!!.path
+        )
+    
         fun generateId(): String {
             return UUID.randomUUID().toString()
         }
-
     }
-
 }

@@ -15,7 +15,6 @@
  */
 package graphmodel
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import ecore.EObjectSource
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum

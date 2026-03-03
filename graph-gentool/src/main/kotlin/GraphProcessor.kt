@@ -469,7 +469,9 @@ class GraphProcessor(
             toRegionName = region?.name ?: "root",
             toRegionID = region?.id ?: "root",
             edgeID = edge.id,
-            serializeWithIDs = IDs)
+            serializeWithIDs = IDs,
+            newEdge = edge,
+            toRegion = region)
         stage.deltaSequence.pushOperation(op)
     }
 

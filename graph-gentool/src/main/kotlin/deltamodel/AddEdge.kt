@@ -18,10 +18,12 @@ package deltamodel
 
 import graphmodel.Edge
 import graphmodel.Graph
+import graphmodel.Region
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
+import tools.vitruv.change.atomic.EChange
 
 /**
  * Add a new [Edge].
@@ -35,11 +37,14 @@ class AddEdge(/*all*/       id: String,
               /*with id*/   val toRegionName: String? = "root",
               /*no id*/     val toRegionID: String? = "root",
               /*with id*/   val edgeID: String?,
-              /*all*/       val serializeWithIDs: Boolean) : DeltaOperation(id) {
+              /*all*/       val serializeWithIDs: Boolean,
+              /*one-way */  val newEdge: Edge?,
+              /*one-way */  val toRegion: Region?) : DeltaOperation(id) {
 
     private val description = "AddEdge"
 
     override fun flatten(): List<DeltaOperation> {
+        toVitruviusEChanges()
         return listOf(this)
     }
 
@@ -114,7 +119,7 @@ class AddEdge(/*all*/       id: String,
                 toRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegion")) as String
             }
 
-            return AddEdge(id, nodeAName, nodeAID, nodeBName, nodeBID, toRegionName, toRegionID, edgeID, serializeWithIDs)
+            return AddEdge(id, nodeAName, nodeAID, nodeBName, nodeBID, toRegionName, toRegionID, edgeID, serializeWithIDs,  null, null)
         }
     }
 
