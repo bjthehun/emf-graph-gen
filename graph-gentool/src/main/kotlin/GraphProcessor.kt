@@ -200,7 +200,7 @@ class GraphProcessor(
             toRegionID = region?.id ?: "root",
             serializeWithIDs = IDs,
             node,
-            graph = targetGraph)
+            containingGraph = targetGraph)
         stage.deltaSequence.pushOperation(op)
     }
 
@@ -224,7 +224,7 @@ class GraphProcessor(
             toRegionID = region?.id ?: "root",
             serializeWithIDs = IDs,
             node,
-            graph = targetGraph)
+            containingGraph = targetGraph)
         stage.deltaSequence.pushOperation(op)
     }
 
@@ -273,7 +273,9 @@ class GraphProcessor(
                 fromRegionID = region?.id ?: "root",
                 serializeWithIDs = IDs,
                 nodeImplications = LinkedList(),
-                edgeImplications = connectedEdgeDeletes.toMutableList())
+                edgeImplications = connectedEdgeDeletes.toMutableList(),
+                node,
+                graph)
         }
 
         // ELSE IF IT IS A REGION:
@@ -299,7 +301,9 @@ class GraphProcessor(
             fromRegionID = region?.id ?: "root",
             serializeWithIDs = IDs,
             nodeImplications = impactedNodeDeletes,
-            edgeImplications = impactedEdgeDeletes.toMutableList())
+            edgeImplications = impactedEdgeDeletes.toMutableList(),
+            node,
+            graph)
 
     }
 
@@ -323,6 +327,8 @@ class GraphProcessor(
                 fromRegionName = region?.name ?: "root",
                 fromRegionID = region?.id ?: "root",
                 edgeID = edge.id,
+                edgeToDelete = edge,
+                containingGraph = graph,
                 serializeWithIDs = IDs)
         }
         graph.nodes.filterIsInstance<Region>().forEach { subRegion ->
@@ -349,6 +355,8 @@ class GraphProcessor(
             fromRegionName = region?.name ?: "root",
             fromRegionID = region?.id ?: "root",
             edgeID = edge.id,
+            edgeToDelete = edge,
+            containingGraph = graph,
             serializeWithIDs = IDs)
         stage.deltaSequence.pushOperation(op)
     }

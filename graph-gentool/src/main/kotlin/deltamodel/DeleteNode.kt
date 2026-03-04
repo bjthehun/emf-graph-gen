@@ -16,15 +16,18 @@
 
 package deltamodel
 
+import graphmodel.Graph
 import graphmodel.Label
 import graphmodel.Node
 import graphmodel.Region
+import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.impl.EEnumImpl
 import org.eclipse.emf.ecore.impl.EEnumLiteralImpl
+import tools.vitruv.change.atomic.EChange
 import java.util.*
 
 /**
@@ -41,7 +44,9 @@ class DeleteNode(/*all*/        id: String,
                  /*with id*/    val fromRegionID: String? = "root",
                  /*all*/        val serializeWithIDs: Boolean,
                  /*all*/        val nodeImplications: MutableList<DeleteNode>,
-                 /*all*/        val edgeImplications: MutableList<DeleteEdge>) : DeltaOperation(id) {
+                 /*all*/        val edgeImplications: MutableList<DeleteEdge>,
+                                val node: Node?,
+                                val containingGraph: Graph?) : DeltaOperation(id) {
 
     val description = "DeleteNode"
 
@@ -55,6 +60,58 @@ class DeleteNode(/*all*/        id: String,
         }
         result.add(this)
         return result
+    }
+
+    override fun toVitruviusEChanges(): List<EChange<Any>> {
+        // Apply DeleteEdges, DeleteNodes for implications first
+        val edgeImplicationEChanges = edgeImplications.flatMap { op -> op.toVitruviusEChanges() }
+        val nodeImplicationEChanges = nodeImplications.flatMap { op -> op.toVitruviusEChanges() }
+
+        // EObject Factory
+        val metamodelHandler = GRAPH_METAMODEL_HANDLER
+        val eClasses = metamodelHandler.getClassMap()
+        val eFactory = metamodelHandler.getModelFactory()
+        val nodeEObject = node!!.generate(eClasses, eFactory, setOf("Node"), null, null)
+        val nodeEClass = nodeEObject.eClass()
+
+        // EChange creation
+        val eChangeCreator = ATOMIC_CHANGE_FACTORY()
+
+        val changes = ArrayList<EChange<Any>>()
+        // Apply Edge Implications, Node Implications first
+        changes.addAll(edgeImplicationEChanges)
+        changes.addAll(nodeImplicationEChanges)
+        // 0. Unset Label, if it is set
+        if (label != null) {
+            val labelEnumValue =
+                metamodelHandler.getEnumMap()["Label"]!!.getEEnumLiteral(label.toString())
+            changes.add(eChangeCreator.createReplaceSingleAttributeChange(
+                nodeEObject,
+                nodeEClass.getEStructuralFeature("label") as EAttribute,
+                labelEnumValue,
+                null
+            ))
+        }
+        // 1. Unset ID
+        changes.add(eChangeCreator.createReplaceSingleAttributeChange(
+            nodeEObject,
+            nodeEClass.getEStructuralFeature("id") as EAttribute,
+            nodeID!!,
+            null
+        ))
+        // 2. RemoveEReference of Graph
+        val graphEObject = containingGraph!!.generate(eClasses, eFactory, setOf(), null, null)
+        changes.add(eChangeCreator.createRemoveReferenceChange(
+            graphEObject,
+            nodeEObject.eContainmentFeature(),
+            graphEObject,
+            0
+        ))
+        // 3. DeleteEObject
+        changes.add(eChangeCreator.createDeleteEObjectChange(
+            nodeEObject
+        ) as EChange<Any>)
+        return changes
     }
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
@@ -150,7 +207,8 @@ class DeleteNode(/*all*/        id: String,
                 fromRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegion"), true) as String
             }
 
-            return DeleteNode(id, nodeName, nodeID, label, fromRegionName, fromRegionID, serializeWithIDs, nodeImplications, edgeImplications)
+            return DeleteNode(id, nodeName, nodeID, label, fromRegionName, fromRegionID, serializeWithIDs, nodeImplications, edgeImplications,
+                null, null)
         }
 
     }

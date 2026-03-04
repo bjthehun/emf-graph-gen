@@ -37,7 +37,8 @@ class MoveNode(/*all*/ id: String,
                val targetRegionID: String? = "root",
                val oldRegionName: String? = "root",
                val oldRegionID: String? = "root",
-               /*all*/ val edgeImplications: MutableList<MoveEdge> = LinkedList(),
+               /*all*/
+               val edgeImplications: MutableList<MoveEdge> = LinkedList(),
                val serializeWithIDs: Boolean
     ) : DeltaOperation(id) {
 

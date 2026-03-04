@@ -41,7 +41,7 @@ class AddNode(/*all*/       operationID: String,
               /*with id*/   val toRegionID: String? = "root",
               /*all*/       val serializeWithIDs: Boolean,
               /*one-way */  val node: Node?,
-              /*one-way */  val graph: Graph?) : DeltaOperation(operationID) {
+              /*one-way */  val containingGraph: Graph?) : DeltaOperation(operationID) {
 
     private val description = "AddNode"
 
@@ -88,7 +88,7 @@ class AddNode(/*all*/       operationID: String,
             actualNodeType)
         val nodeEClass = nodeElement.eClass()
         // Create graph EObject
-        val graphElement = graph!!.generate(classes, factory, setOf(), null, null)
+        val graphElement = containingGraph!!.generate(classes, factory, setOf(), null, null)
         // Setup change model factory
         val changeFactory = ATOMIC_CHANGE_FACTORY()
         val changes = ArrayList<EChange<Any>>()
@@ -102,14 +102,31 @@ class AddNode(/*all*/       operationID: String,
             null,
             node.id
         ))
-        // 3. Set label
-        changes.add(changeFactory.createReplaceSingleAttributeChange(
-            nodeElement,
-            nodeEClass.getEStructuralFeature("label") as EAttribute,
-            null,
-            greyEnum.getEEnumLiteral(0)
-        ))
-        // 4. Add to graph
+        if (node is SimpleNode) {
+            // 3. Set label
+            changes.add(changeFactory.createReplaceSingleAttributeChange(
+                nodeElement,
+                nodeEClass.getEStructuralFeature("label") as EAttribute,
+                null,
+                greyEnum.getEEnumLiteral(0)
+            ))
+        }
+        else if (node is Region) {
+            // Retrieve graph EObject of region
+            val regionGraphEObject = node.graph.generate(classes, factory, setOf(), null, null)
+            // 4. Create Region Graph
+            changes.add(changeFactory.createCreateEObjectChange(
+                regionGraphEObject
+            ) as EChange<Any>)
+            // 5. Add Reference of Region to Graph
+            changes.add(changeFactory.createInsertReferenceChange(
+                nodeElement,
+                nodeEClass.getEStructuralFeature("graph") as EReference,
+                regionGraphEObject,
+                0
+            ))
+        }
+        // 4./.6. Add to graph
         changes.add(changeFactory.createInsertReferenceChange(
             graphElement,
             graphElement.eClass().getEStructuralFeature("nodes") as EReference,

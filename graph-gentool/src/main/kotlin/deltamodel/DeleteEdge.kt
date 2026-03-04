@@ -18,10 +18,14 @@ package deltamodel
 
 import graphmodel.Edge
 import graphmodel.Graph
+import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EReference
+import tools.vitruv.change.atomic.EChange
+import tools.vitruv.change.atomic.TypeInferringAtomicEChangeFactory
 
 /**
  * Delete an [Edge].
@@ -35,6 +39,8 @@ class DeleteEdge(/*all*/    id: String,
                  /*no id*/  val fromRegionName: String? = "root",
                  /*with id*/val fromRegionID: String? = "root",
                  /*with id*/val edgeID: String?,
+                 /*one-way*/val edgeToDelete: Edge?,
+                 /*one-way*/val containingGraph: Graph?,
                  /*all*/    val serializeWithIDs: Boolean) : DeltaOperation(id) {
 
     private val description = "DeleteEdge"
@@ -69,6 +75,58 @@ class DeleteEdge(/*all*/    id: String,
 
         this.buffer = operation
         return operation
+    }
+
+    override fun toVitruviusEChanges(): List<EChange<Any>> {
+        // Set up EObject factory
+        val eObjectFactory = GRAPH_METAMODEL_HANDLER
+        val classes = eObjectFactory.getClassMap()
+        val factory = eObjectFactory.getModelFactory()
+        // Retrieve Edge EObject
+        val edgeEObject = edgeToDelete!!.generate(classes, factory, setOf(), null, null)
+        val edgeEClass = edgeEObject.eClass()
+        // Retrieve Node EObjects
+        val nodeAEObject = edgeToDelete.a.generate(classes, factory, setOf(), null, null)
+        val nodeBEObject = edgeToDelete.a.generate(classes, factory, setOf(), null, null)
+        val edgeNodeRefs = edgeEClass.getEStructuralFeature("nodes") as EReference
+        // Retrieve containing Graph
+        val graphEObject = containingGraph!!.generate(classes, factory, setOf(), null, null)
+
+        val eChangeFactory = TypeInferringAtomicEChangeFactory.getInstance()
+        val changes = ArrayList<EChange<Any>>()
+        // 1. UnsetEAttribute
+        changes.add(eChangeFactory.createReplaceSingleAttributeChange(
+            edgeEObject,
+            edgeEClass.getEStructuralFeature("id") as EAttribute,
+            edgeID,
+            null
+        ))
+        // 2. RemoveEReference to node A
+        changes.add(eChangeFactory.createRemoveReferenceChange(
+            edgeEObject,
+            edgeNodeRefs,
+            nodeAEObject,
+            0
+        ))
+        // 3. RemoveEReference to node b
+        changes.add(eChangeFactory.createRemoveReferenceChange(
+            edgeEObject,
+            edgeNodeRefs,
+            nodeBEObject,
+            0
+        ))
+        // 4. RemoveEReference of graph to edge
+        changes.add(eChangeFactory.createRemoveReferenceChange(
+            graphEObject,
+            edgeEObject.eContainmentFeature(),
+            edgeEObject,
+            0
+        ))
+        // 5. DeleteEObject
+        changes.add(eChangeFactory.createDeleteEObjectChange(
+            edgeEObject
+        ) as EChange<Any>)
+        return changes
     }
 
     override fun deepEquals(other: Any): Boolean {
@@ -112,7 +170,7 @@ class DeleteEdge(/*all*/    id: String,
                 fromRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegion")) as String
             }
 
-            return DeleteEdge(id, nodeAName, nodeAID, nodeBName, nodeBID, fromRegionName, fromRegionID, edgeID, serializeWithIDs)
+            return DeleteEdge(id, nodeAName, nodeAID, nodeBName, nodeBID, fromRegionName, fromRegionID, edgeID, null, null,serializeWithIDs)
         }
 
     }

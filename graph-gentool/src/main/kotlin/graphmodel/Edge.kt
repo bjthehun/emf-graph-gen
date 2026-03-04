@@ -42,7 +42,11 @@ class Edge(
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                                    label: EEnum?, nodeType: EEnum?): EObject {
 
-        val edge = buffer ?: factory.create(classes[description])
+        val edge =
+            if (buffer == null)
+                factory.create(classes[description])
+            else
+                buffer!!
 
         if(serializeWithIDs){
             val idAttribute = edge.eClass().getEStructuralFeature("id")
