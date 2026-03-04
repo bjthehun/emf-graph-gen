@@ -16,13 +16,17 @@
 
 package deltamodel
 
+import graphmodel.Graph
 import graphmodel.Node
 import graphmodel.Region
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EReference
+import tools.vitruv.change.atomic.EChange
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * Move a [Node] from one [Region] to another one.
@@ -39,7 +43,11 @@ class MoveNode(/*all*/ id: String,
                val oldRegionID: String? = "root",
                /*all*/
                val edgeImplications: MutableList<MoveEdge> = LinkedList(),
-               val serializeWithIDs: Boolean
+               val serializeWithIDs: Boolean,
+               /*one-way*/
+                val node: Node?,
+                val fromGraph: Graph?,
+                val toGraph:  Graph?
     ) : DeltaOperation(id) {
 
     private val description = "MoveNode"
@@ -83,6 +91,40 @@ class MoveNode(/*all*/ id: String,
 
         this.buffer = operation
         return operation
+    }
+
+    override fun toVitruviusEChanges(): List<EChange<Any>> {
+        // EObject factory
+        val ecoreMetamodelHandler = GRAPH_METAMODEL_HANDLER
+        val eClasses = ecoreMetamodelHandler.getClassMap()
+        val eFactory = ecoreMetamodelHandler.getModelFactory()
+
+        // Create edge EObject
+        val edgeEObject = node!!.generate(eClasses, eFactory, setOf(), null, null)
+        // Create graph EObjects
+        val fromGraphEObject = fromGraph!!.generate(eClasses, eFactory, setOf(), null, null)
+        val toGraphEObject = toGraph!!.generate(eClasses, eFactory, setOf(), null, null)
+        // Get EReference
+        val graphEdgesEReference = fromGraphEObject.eClass()
+            .getEStructuralFeature("edges") as EReference
+
+        val atomicEChangeFactory = ATOMIC_CHANGE_FACTORY()
+        val changes = ArrayList(edgeImplications.flatMap { op -> op.toVitruviusEChanges() })
+        // 1. RemoveEReference from old graph
+        changes.add(atomicEChangeFactory.createRemoveReferenceChange(
+            fromGraphEObject,
+            graphEdgesEReference,
+            edgeEObject,
+            0
+        ))
+        // 2. InsertEReference to old graph
+        changes.add(atomicEChangeFactory.createInsertReferenceChange(
+            toGraphEObject,
+            graphEdgesEReference,
+            edgeEObject,
+            0
+        ))
+        return changes
     }
 
     override fun deepEquals(other: Any): Boolean {
@@ -131,7 +173,8 @@ class MoveNode(/*all*/ id: String,
                 oldRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegion"), true) as String
             }
 
-            return MoveNode(id, nodeName, nodeID, targetRegionName, targetRegionID, oldRegionName, oldRegionID, edgeImplications, serializeWithIDs)
+            return MoveNode(id, nodeName, nodeID, targetRegionName, targetRegionID, oldRegionName, oldRegionID, edgeImplications, serializeWithIDs,
+                null, null, null)
         }
     }
 }

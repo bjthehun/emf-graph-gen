@@ -24,6 +24,7 @@ import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
+import tools.vitruv.change.atomic.EChange
 import util.IndexedComparable
 import java.util.*
 
@@ -116,6 +117,10 @@ class DeltaSequence(
 
         buffer = deltaSequence
         return deltaSequence
+    }
+
+    fun toVitruviusEChanges(): List<EChange<Any>> {
+        return deltaOperations.flatMap { op -> op.toVitruviusEChanges() }
     }
 
     override fun deepEquals(other: Any): Boolean {
