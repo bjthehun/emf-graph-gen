@@ -87,7 +87,7 @@ class AddEdge(/*all*/       id: String,
         val metamodelHandler = GRAPH_METAMODEL_HANDLER
         val classes   = metamodelHandler.getClassMap()
         val factory  = metamodelHandler.getModelFactory()
-        // Set up EEchangeFactory
+        // Set up EChangeFactory
         val changeFactory = TypeInferringAtomicEChangeFactory.getInstance()
 
         // Get Edge EObject
@@ -113,9 +113,15 @@ class AddEdge(/*all*/       id: String,
         changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeB, 0))
 
         // Identify containing graph
-        val graph = edge.eContainer();
+        val regionElement = toRegion!!.generate(classes, factory, setOf("Node"), null, null)
+        val graph = regionElement.eGet(regionElement.eClass().getEStructuralFeature("graph")) as EObject
         // Change 5: InsertEReference
-        changes.add(changeFactory.createInsertReferenceChange(graph, graph.eClass().getEStructuralFeature("edges") as EReference, edge, 0))
+        changes.add(
+            changeFactory.createInsertReferenceChange(
+                graph,
+                graph.eClass().getEStructuralFeature("edges") as EReference,
+                edge,
+                0))
 
         return changes
     }

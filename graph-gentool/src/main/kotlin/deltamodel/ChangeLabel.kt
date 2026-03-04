@@ -18,6 +18,7 @@ package deltamodel
 
 import graphmodel.Label
 import graphmodel.Node
+import graphmodel.SimpleNode
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
@@ -34,7 +35,8 @@ class ChangeLabel(/*all*/       id: String,
                   /*with id*/   val nodeID: String?,
                   /*all*/       val newLabel: Label,
                   /*all*/       val oldLabel: Label,
-                                val serializeWithIDs: Boolean) : DeltaOperation(id) {
+                  /*one-way*/   val node: SimpleNode?,
+                  val serializeWithIDs: Boolean) : DeltaOperation(id) {
 
     private val description = "ChangeLabel"
 
@@ -67,7 +69,28 @@ class ChangeLabel(/*all*/       id: String,
 
     override fun toVitruviusEChanges(): List<EChange<Any>> {
         val eObjectCreator = GRAPH_METAMODEL_HANDLER
+        // Get SimpleNode
+        val nodeElement = node!!.generate(
+            eObjectCreator.getClassMap(),
+            eObjectCreator.getModelFactory(),
+            nodeType = null,
+            filter = setOf(),
+            label = null
+        )
+        // Translate old and new enums
+        val labelENumInEcore = eObjectCreator.getEnumMap()["Label"]!!
+        val oldLabelInEcore  = labelENumInEcore.getEEnumLiteral(oldLabel.toString())
+        val newLabelInEcore  = labelENumInEcore.getEEnumLiteral(newLabel.toString())
+
+        val eChangeFactory = ATOMIC_CHANGE_FACTORY()
         val changes = ArrayList<EChange<Any>>()
+        // SetEAttribute
+//        changes.add(
+//            eChangeFactory.createReplaceSingleAttributeChange(
+//                nodeElement,
+//                nodeElement.eClass().getEStructuralFeature()
+//            )
+//        )
         return changes
     }
 
@@ -104,7 +127,7 @@ class ChangeLabel(/*all*/       id: String,
                 nodeName = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeName")) as String
             }
 
-            return ChangeLabel(id, nodeName, nodeID, newLabel, oldLabel, serializeWithIDs)
+            return ChangeLabel(id, nodeName, nodeID, newLabel, oldLabel, null, serializeWithIDs)
         }
 
     }

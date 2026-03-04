@@ -102,7 +102,14 @@ class AddNode(/*all*/       operationID: String,
             null,
             node.id
         ))
-        // 3. Add to graph
+        // 3. Set label
+        changes.add(changeFactory.createReplaceSingleAttributeChange(
+            nodeElement,
+            nodeEClass.getEStructuralFeature("label") as EAttribute,
+            null,
+            greyEnum.getEEnumLiteral(0)
+        ))
+        // 4. Add to graph
         changes.add(changeFactory.createInsertReferenceChange(
             graphElement,
             graphElement.eClass().getEStructuralFeature("nodes") as EReference,

@@ -440,7 +440,8 @@ class GraphProcessor(
             nodeID = simpleNode.id,
             newLabel = simpleNode.label,
             oldLabel = oldLabel,
-            serializeWithIDs = IDs)
+            serializeWithIDs = IDs,
+            node = simpleNode)
         stage.deltaSequence.pushOperation(op)
     }
 
