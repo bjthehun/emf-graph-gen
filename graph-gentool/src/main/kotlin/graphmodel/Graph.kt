@@ -39,6 +39,7 @@ class Graph(
     private val description = "Graph"
 
     init {
+        buffer = predef
         if (nodes.isEmpty() && edges.isEmpty() && predef != null) {
 
             if(serializeWithIDs){

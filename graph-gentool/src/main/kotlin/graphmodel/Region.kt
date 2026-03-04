@@ -37,7 +37,7 @@ class Region(id: String?, name: String, val graph: Graph, serializeWithIDs: Bool
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                                    label: EEnum?, nodeType: EEnum?): EObject {
-        if(filter.contains("Node")) {
+        if (filter.contains("Node")) {
             val region = factory.create(classes[description])
             super.buffer = region
             val nameAttribute = region.eClass().getEStructuralFeature("name")
