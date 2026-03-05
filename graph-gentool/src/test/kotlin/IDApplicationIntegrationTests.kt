@@ -52,8 +52,7 @@ class IDApplicationIntegrationTests {
             branchNumber = 0,
             branchEditLength = 0,
             edgeDistortion = 0.1,
-            outputPath = "./out/test",
-            withEIDs = true
+            outputPath = "./out/test"
         )
 
         val outputGraph = runWithConfig(configuration).baseGraph
@@ -66,7 +65,7 @@ class IDApplicationIntegrationTests {
         val ecoreHandler = EcoreHandler(metamodelURI, expectedOutputURI, "labelgraph")
 
         val graphRoot = ecoreHandler.getModelRoot()
-        val inputGraph = Graph(null, LinkedList<Node>(), LinkedList<Edge>(), graphRoot, isRoot = true, serializeWithIDs = true)
+        val inputGraph = Graph(null, LinkedList<Node>(), LinkedList<Edge>(), graphRoot, isRoot = true)
 
         Assertions.assertEquals(outputGraph.getStats(true).toString(), inputGraph.getStats(true).toString())
         Assertions.assertTrue(outputGraph.deepEquals(inputGraph))
@@ -84,8 +83,7 @@ class IDApplicationIntegrationTests {
             atomicCounting = false,
             stepwiseExport = false,
             edgeDistortion = 0.1,
-            outputPath = "./out/test",
-            withEIDs = true
+            outputPath = "./out/test"
         )
 
         val outputDeltas = runWithConfig(configuration).branchDeltas
@@ -102,8 +100,8 @@ class IDApplicationIntegrationTests {
 
         val deltaEModelB0 = ecoreHandlerB0.getModelRoot()
         val deltaEModelB1 = ecoreHandlerB1.getModelRoot()
-        val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0, true)
-        val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1, true)
+        val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0)
+        val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1)
 
 
         Assertions.assertFalse(inputDeltaSequenceB0.deepEquals(inputDeltaSequenceB1))
@@ -130,8 +128,7 @@ class IDApplicationIntegrationTests {
             atomicCounting = false,
             stepwiseExport = false,
             edgeDistortion = 0.1,
-            outputPath = "./out/test",
-            withEIDs = true
+            outputPath = "./out/test"
         )
 
         val outputDeltas = runWithConfig(configuration).branchDeltas
@@ -148,8 +145,8 @@ class IDApplicationIntegrationTests {
 
         val deltaEModelB0 = ecoreHandlerB0.getModelRoot()
         val deltaEModelB1 = ecoreHandlerB1.getModelRoot()
-        val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0, true)
-        val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1, true)
+        val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0)
+        val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1)
 
         Assertions.assertFalse(inputDeltaSequenceB0.deepEquals(inputDeltaSequenceB1))
         Assertions.assertFalse(inputDeltaSequenceB1.deepEquals(inputDeltaSequenceB0))
@@ -179,8 +176,7 @@ class IDApplicationIntegrationTests {
                 branchEditFocus = 0.8,
                 atomicCounting = true,
                 stepwiseExport = false,
-                randomSeed = i,
-                withEIDs = true
+                randomSeed = i
             )
 
             val outputEnv = runWithConfig(configuration)
@@ -214,8 +210,7 @@ class IDApplicationIntegrationTests {
                 branchEditFocus = 0.8,
                 atomicCounting = false,
                 stepwiseExport = true,
-                randomSeed = i,
-                withEIDs = true
+                randomSeed = i
             )
 
             val outputEnv = runWithConfig(configuration)
@@ -243,8 +238,7 @@ class IDApplicationIntegrationTests {
             branchEditLength = 100,
             branchEditFocus = 0.8,
             atomicCounting = true,
-            randomSeed = 100,
-            withEIDs = true
+            randomSeed = 100
         )
 
         val outputEnv = runWithConfig(configuration)

@@ -25,10 +25,9 @@ import org.eclipse.emf.ecore.EObject
 import util.IndexedComparable
 
 class Edge(
-    val id: String?,
+    val id: String,
     val a: Node,
-    val b: Node,
-    private val serializeWithIDs: Boolean = false
+    val b: Node
 ) : BufferedObject(), DeepComparable, IDComparable {
 
     private val description = "Edge"
@@ -36,22 +35,20 @@ class Edge(
     fun deepCopy(allNodes: Collection<Node>): Edge {
         val symmetricA = allNodes.find { n -> n.name == a.name }!!
         val symmetricB = allNodes.find { n -> n.name == b.name }!!
-        return Edge(id, symmetricA, symmetricB, serializeWithIDs)
+        return Edge(id, symmetricA, symmetricB)
     }
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                                    label: EEnum?, nodeType: EEnum?): EObject {
-
         val edge =
             if (buffer == null)
                 factory.create(classes[description])
             else
                 buffer!!
 
-        if(serializeWithIDs){
-            val idAttribute = edge.eClass().getEStructuralFeature("id")
-            edge.eSet(idAttribute, id)
-        }
+
+        val idAttribute = edge.eClass().getEStructuralFeature("id")
+        edge.eSet(idAttribute, id)
 
         val nodesReferences = edge.eClass().getEStructuralFeature("nodes")
         (edge.eGet(nodesReferences) as java.util.List<Any>).addAll(listOf(a.buffer!!, b.buffer!!))
@@ -61,7 +58,7 @@ class Edge(
 
     /**
      * Compares two edges.
-     * Two edges are considered equal if their nodes have the same names and are in the same order
+     * Two edges are considered equal if their nodes have the same names, and are in the same order.
      */
     override fun deepEquals(other: Any): Boolean {
         if(other is Edge){
@@ -71,8 +68,7 @@ class Edge(
     }
 
     override fun idEquals(other: Any): Boolean {
-        if (!serializeWithIDs) return false
-        return other is Edge && other.serializeWithIDs && id == other.id
+        return other is Edge && id == other.id
     }
 
 }

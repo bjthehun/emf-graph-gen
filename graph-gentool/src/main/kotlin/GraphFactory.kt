@@ -23,7 +23,6 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
 
     private val random: Random = Random(conf.randomSeed)
     private val rootStats: GraphStats = root.getStats(true)
-    private val IDs: Boolean = conf.withEIDs
 
     init {
         assert(rootStats.allEdges.size == 0)
@@ -71,7 +70,7 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
         val regions: MutableList<Region> = LinkedList<Region>()
         repeat(numberOfRegions) { i ->
             val r = Region(Graph.generateId(), "R$i", Graph(Graph.generateId(), LinkedList<Node>(), LinkedList<Edge>(),
-                null, serializeWithIDs = IDs), serializeWithIDs = IDs)
+                null))
             regions.add(r)
         }
         return regions
@@ -87,7 +86,7 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
     private fun simpleNodes(numberOfSimpleNodes: Int): MutableList<SimpleNode> {
         val simpleNodes: MutableList<SimpleNode> = LinkedList<SimpleNode>()
         repeat(numberOfSimpleNodes) { i ->
-            val n = SimpleNode(Graph.generateId(), "N$i", SimpleNode.randomLabel(random), serializeWithIDs = IDs)
+            val n = SimpleNode(Graph.generateId(), "N$i", SimpleNode.randomLabel(random))
             simpleNodes.add(n)
         }
         return simpleNodes
@@ -141,7 +140,7 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
                     while (nodeIndex < graph.nodes.size){
                         val connectedNodeSource = connectedNodes[random.nextInt(0, connectedNodes.size)]
                         val unconnectedNodeTarget = graph.nodes[nodeIndex]
-                        val edge = Edge(Graph.generateId(), connectedNodeSource, unconnectedNodeTarget, serializeWithIDs = IDs)
+                        val edge = Edge(Graph.generateId(), connectedNodeSource, unconnectedNodeTarget)
                         graph.edges.add(edge)
                         edges.add(edge)
                         connectedNodes.add(unconnectedNodeTarget)
@@ -167,7 +166,7 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
                 if(randomGraphSource.nodes.size == 0 || randomGraphTarget.nodes.size == 0) continue
                 val randomCrossRegionNodeSource = randomGraphSource.randomNode(random)
                 val randomCrossRegionNodeTarget = randomGraphTarget.randomNode(random)
-                val edge = Edge(Graph.generateId(), randomCrossRegionNodeSource, randomCrossRegionNodeTarget, serializeWithIDs = IDs)
+                val edge = Edge(Graph.generateId(), randomCrossRegionNodeSource, randomCrossRegionNodeTarget)
                 randomGraphSource.edges.add(edge)
                 edges.add(edge)
                 missingDistortedEdges--
@@ -178,7 +177,7 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
                 if(randomGraph.nodes.size == 0) continue
                 val randomNodeSource = randomGraph.randomNode(random)
                 val randomNodeTarget = randomGraph.randomNode(random)
-                val edge = Edge(Graph.generateId(), randomNodeSource, randomNodeTarget, serializeWithIDs = IDs)
+                val edge = Edge(Graph.generateId(), randomNodeSource, randomNodeTarget)
                 randomGraph.edges.add(edge)
                 edges.add(edge)
                 missingNormalEdges--

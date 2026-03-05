@@ -19,6 +19,7 @@ package deltamodel
 import graphmodel.Label
 import graphmodel.Node
 import graphmodel.SimpleNode
+import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
@@ -31,12 +32,10 @@ import tools.vitruv.change.atomic.EChange
  * The uniqueness of the Label value must not be violated.
  */
 class ChangeLabel(/*all*/       id: String,
-                  /*no id*/     val nodeName: String?,
-                  /*with id*/   val nodeID: String?,
+                  /*with id*/   val nodeID: String,
                   /*all*/       val newLabel: Label,
                   /*all*/       val oldLabel: Label,
-                  /*one-way*/   val node: SimpleNode?,
-                  val serializeWithIDs: Boolean) : DeltaOperation(id) {
+                  /*one-way*/   val node: SimpleNode?) : DeltaOperation(id) {
 
     private val description = "ChangeLabel"
 
@@ -55,13 +54,8 @@ class ChangeLabel(/*all*/       id: String,
         operation.eSet(newLabelAttribute, label!!.getEEnumLiteral(this.newLabel.name))
         operation.eSet(oldLabelAttribute, label.getEEnumLiteral(this.oldLabel.name))
 
-        if(serializeWithIDs){
-            val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
-            operation.eSet(nodeIDAttribute, nodeID)
-        }else{
-            val nodeNameAttribute = operation.eClass().getEStructuralFeature("nodeName")
-            operation.eSet(nodeNameAttribute, nodeName)
-        }
+        val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
+        operation.eSet(nodeIDAttribute, nodeID)
 
         this.buffer = operation
         return operation
@@ -85,49 +79,36 @@ class ChangeLabel(/*all*/       id: String,
         val eChangeFactory = ATOMIC_CHANGE_FACTORY()
         val changes = ArrayList<EChange<Any>>()
         // SetEAttribute
-//        changes.add(
-//            eChangeFactory.createReplaceSingleAttributeChange(
-//                nodeElement,
-//                nodeElement.eClass().getEStructuralFeature()
-//            )
-//        )
+        changes.add(
+            eChangeFactory.createReplaceSingleAttributeChange(
+                nodeElement,
+                nodeElement.eClass().getEStructuralFeature("label") as EAttribute,
+                oldLabelInEcore,
+                newLabelInEcore
+            )
+        )
         return changes
     }
 
     override fun deepEquals(other: Any): Boolean {
         if(other is ChangeLabel){
-            return if(serializeWithIDs) {
-                this.nodeID == other.nodeID && this.newLabel == other.newLabel && this.oldLabel == other.oldLabel
-            }else{
-                val res = this.nodeName == other.nodeName && this.newLabel == other.newLabel &&
-                        this.oldLabel == other.oldLabel
-                if(idEquals(other) && !res){
-                    throw AssertionError("Incoherent Comparison ChangeLabel: $this != $other")
-                }
-                res
-            }
+            return this.nodeID == other.nodeID
+                    && this.newLabel == other.newLabel
+                    && this.oldLabel == other.oldLabel
         }
         return false
     }
 
     companion object {
 
-        fun parse(eObject: EObject, serializeWithIDs: Boolean): ChangeLabel {
+        fun parse(eObject: EObject, ): ChangeLabel {
 
             val newLabel = Label.entries[(eObject.eGet(eObject.eClass().getEStructuralFeature("newLabel")) as EEnumLiteralImpl).value]
             val oldLabel = Label.entries[(eObject.eGet(eObject.eClass().getEStructuralFeature("oldLabel")) as EEnumLiteralImpl).value]
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id")) as String
+            var nodeID: String = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID")) as String
 
-            var nodeName: String? = null
-            var nodeID: String? = null
-
-            if(serializeWithIDs){
-                nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID")) as String
-            }else{
-                nodeName = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeName")) as String
-            }
-
-            return ChangeLabel(id, nodeName, nodeID, newLabel, oldLabel, null, serializeWithIDs)
+            return ChangeLabel(id, nodeID, newLabel, oldLabel, null)
         }
 
     }

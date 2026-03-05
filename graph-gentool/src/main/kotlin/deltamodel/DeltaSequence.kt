@@ -30,8 +30,7 @@ import java.util.*
 
 class DeltaSequence(
     val deltaOperations: MutableList<DeltaOperation> = LinkedList(),
-    predef: EObject? = null,
-    val serializeWithIDs: Boolean
+    predef: EObject? = null
 ) : EObjectSource, IndexedComparable(), DeepComparable, IDComparable {
 
     private var buffer = predef
@@ -48,25 +47,25 @@ class DeltaSequence(
 
                 when (name) {
                     "AddNode" -> {
-                        op = AddNode.parse(eDeltaOperation, serializeWithIDs)
+                        op = AddNode.parse(eDeltaOperation)
                     }
                     "AddEdge" -> {
-                        op = AddEdge.parse(eDeltaOperation, serializeWithIDs)
+                        op = AddEdge.parse(eDeltaOperation)
                     }
                     "ChangeLabel" -> {
-                        op = ChangeLabel.parse(eDeltaOperation, serializeWithIDs)
+                        op = ChangeLabel.parse(eDeltaOperation)
                     }
                     "MoveEdge" -> {
-                        op = MoveEdge.parse(eDeltaOperation, serializeWithIDs)
+                        op = MoveEdge.parse(eDeltaOperation)
                     }
                     "DeleteNode" -> {
-                        op = DeleteNode.parse(eDeltaOperation, serializeWithIDs)
+                        op = DeleteNode.parse(eDeltaOperation)
                     }
                     "DeleteEdge" -> {
-                        op = DeleteEdge.parse(eDeltaOperation, serializeWithIDs)
+                        op = DeleteEdge.parse(eDeltaOperation)
                     }
                     "MoveNode" -> {
-                        op = MoveNode.parse(eDeltaOperation, serializeWithIDs)
+                        op = MoveNode.parse(eDeltaOperation)
                     }
                 }
 
@@ -127,7 +126,8 @@ class DeltaSequence(
         if(other !is DeltaSequence) return false
         if(deltaOperations.size != other.deltaOperations.size) return false
         for(deltaOperation in deltaOperations){
-            if(!other.deltaOperations.any { it.deepEquals(deltaOperation) }) return false
+            if(!other.deltaOperations.any { it.deepEquals(deltaOperation) })
+                return false
         }
         return true
     }
@@ -136,7 +136,8 @@ class DeltaSequence(
         if(other !is DeltaSequence) return false
         if(deltaOperations.size != other.deltaOperations.size) return false
         for(deltaOperation in deltaOperations){
-            if(!other.deltaOperations.any { it.idEquals(deltaOperation) }) return false
+            if(!other.deltaOperations.any { it.idEquals(deltaOperation) })
+                return false
         }
         return true
     }

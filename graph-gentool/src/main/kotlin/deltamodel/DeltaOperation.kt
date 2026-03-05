@@ -37,11 +37,7 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
 
     abstract fun flatten(): List<DeltaOperation>
 
-    open fun toVitruviusEChanges(): List<EChange<Any>> {
-        val changes = ArrayList<EChange<Any>>()
-        // Get Edge EObject
-        return changes
-    }
+    abstract fun toVitruviusEChanges(): List<EChange<Any>>
 
     fun getAtomicLength(): Int  {
         return flatten().size

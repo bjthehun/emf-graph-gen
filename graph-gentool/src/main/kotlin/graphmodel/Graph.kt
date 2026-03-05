@@ -16,14 +16,14 @@
 package graphmodel
 
 import ecore.DeepComparable
-import ecore.EObjectSource
+
 import ecore.IDComparable
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
 import util.GraphStats
-import util.IndexedComparable
+
 import java.util.*
 import kotlin.random.Random
 
@@ -32,8 +32,7 @@ class Graph(
     val nodes: MutableList<Node> = LinkedList<Node>(),
     val edges: MutableList<Edge> = LinkedList<Edge>(),
     private val predef: EObject? = null,
-    val isRoot: Boolean = false,
-    val serializeWithIDs: Boolean = false
+    val isRoot: Boolean = false
 ) : DeepComparable, IDComparable, BufferedObject() {
 
     private val description = "Graph"
@@ -42,17 +41,15 @@ class Graph(
         buffer = predef
         if (nodes.isEmpty() && edges.isEmpty() && predef != null) {
 
-            if(serializeWithIDs){
-                val idAttribute = predef.eClass().getEStructuralFeature("id")
-                id = predef.eGet(idAttribute) as String
-            }
+            val idAttribute = predef.eClass().getEStructuralFeature("id")
+            id = predef.eGet(idAttribute) as String
 
             val nodesComposition = predef.eClass().getEStructuralFeature("nodes")
-            val eNodes = predef.eGet(nodesComposition) as java.util.List<EObject>
+            val eNodes = predef.eGet(nodesComposition) as List<EObject>
             val genSimpleNodes = eNodes.filter { e -> e.eClass().name == "SimpleNode" }.map { e ->
-                SimpleNode.construct(e, serializeWithIDs)
+                SimpleNode.construct(e)
             }
-            val genRegions = eNodes.filter { e -> e.eClass().name == "Region" }.map { e -> Region.construct(e, serializeWithIDs) }
+            val genRegions = eNodes.filter { e -> e.eClass().name == "Region" }.map { e -> Region.construct(e) }
             nodes.addAll(genSimpleNodes)
             nodes.addAll(genRegions)
 
@@ -163,17 +160,14 @@ class Graph(
             val b = edgeList[1]
             val aName = a.eGet(a.eClass().getEStructuralFeature("name"), true) as String
             val bName = b.eGet(b.eClass().getEStructuralFeature("name"), true) as String
-            //println("$aName <---> $bName")
+
             val aNode = nodes.find { n -> n.name == aName }!!
             val bNode = nodes.find { n -> n.name == bName }!!
 
-            var edgeID: String? = null
-            if(serializeWithIDs){
-                val idAttribute = edge.eClass().getEStructuralFeature("id")
-                edgeID = edge.eGet(idAttribute) as String
-            }
+            val idAttribute = edge.eClass().getEStructuralFeature("id")
+            val edgeID = edge.eGet(idAttribute) as String
 
-            val genEdge = Edge(edgeID, aNode, bNode, serializeWithIDs)
+            val genEdge = Edge(edgeID, aNode, bNode)
             edges.add(genEdge)
         }
 
@@ -189,8 +183,7 @@ class Graph(
             nodes.map { n -> n.deepCopy() }.toMutableList(),
             LinkedList<Edge>(),
             predef = null,
-            isRoot,
-            serializeWithIDs
+            isRoot
         )
 
         if (isRoot) {
@@ -236,10 +229,8 @@ class Graph(
         val graph = buffer ?: factory.create(classes[description])
         buffer = graph
 
-        if(serializeWithIDs){
-            val idAttribute = graph.eClass().getEStructuralFeature("id")
-            graph.eSet(idAttribute, id)
-        }
+        val idAttribute = graph.eClass().getEStructuralFeature("id")
+        graph.eSet(idAttribute, id)
 
         val nodesComposition = graph.eClass().getEStructuralFeature("nodes")
         val edgesComposition = graph.eClass().getEStructuralFeature("edges")
@@ -291,8 +282,6 @@ class Graph(
     }
 
     override fun idEquals(other: Any): Boolean {
-        if(!serializeWithIDs) return false
-        return other is Graph && other.serializeWithIDs && id == other.id
+        return other is Graph && id == other.id
     }
-
 }

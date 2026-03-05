@@ -38,9 +38,6 @@ class GraphProcessor(
 
     private val random: Random = Random(conf.randomSeed)
     private val rootStats: GraphStats = graph.getStats(true)
-
-    private val IDs = conf.withEIDs
-
     private val changeOperationWeights = weights
 
     // list: ( (min, max) -> operation )
@@ -48,7 +45,7 @@ class GraphProcessor(
 
     private lateinit var stage: Stage
 
-    private val globalDeltaSequence: DeltaSequence = DeltaSequence(serializeWithIDs = IDs)
+    private val globalDeltaSequence: DeltaSequence = DeltaSequence()
     private var globalGraph: Graph = graph
     private val impactType: ImpactType
 
@@ -169,7 +166,7 @@ class GraphProcessor(
     }
 
     private fun clearStage() {
-        stage = Stage(globalGraph.deepCopy(), DeltaSequence(serializeWithIDs = IDs))
+        stage = Stage(globalGraph.deepCopy(), DeltaSequence())
     }
 
     private fun randomGlobalStageRegion(): Region? {
@@ -188,7 +185,7 @@ class GraphProcessor(
      */
     private fun addSimpleNode(region: Region?) {
         val node = SimpleNode(Graph.generateId(),"SN_"+UUID.randomUUID().toString(),
-            SimpleNode.randomLabel(random), serializeWithIDs = IDs)
+            SimpleNode.randomLabel(random))
         val targetGraph = region?.graph ?: stage.graph
         targetGraph.nodes.add(node)
         val op = AddNode(
@@ -196,9 +193,7 @@ class GraphProcessor(
             nodeName = node.name,
             nodeID = Graph.generateId(),
             nodeType = NodeType.SIMPLE,
-            toRegionName = region?.name ?: "root",
             toRegionID = region?.id ?: "root",
-            serializeWithIDs = IDs,
             node,
             containingGraph = targetGraph)
         stage.deltaSequence.pushOperation(op)
@@ -212,7 +207,7 @@ class GraphProcessor(
      */
     private fun addRegion(region: Region?) {
         val node = Region(Graph.generateId(),"RE_"+UUID.randomUUID().toString(),
-            Graph(id = Graph.generateId(), serializeWithIDs = IDs), serializeWithIDs = IDs)
+            Graph(id = Graph.generateId()))
         val targetGraph = region?.graph ?: stage.graph
         targetGraph.nodes.add(node)
         val op = AddNode(
@@ -220,9 +215,7 @@ class GraphProcessor(
             nodeName = node.name,
             nodeID = Graph.generateId(),
             nodeType = NodeType.REGION,
-            toRegionName = region?.name ?: "root",
             toRegionID = region?.id ?: "root",
-            serializeWithIDs = IDs,
             node,
             containingGraph = targetGraph)
         stage.deltaSequence.pushOperation(op)
@@ -269,9 +262,7 @@ class GraphProcessor(
                 nodeName = node.name,
                 nodeID = node.id,
                 label = label,
-                fromRegionName = region?.name ?: "root",
                 fromRegionID = region?.id ?: "root",
-                serializeWithIDs = IDs,
                 nodeImplications = LinkedList(),
                 edgeImplications = connectedEdgeDeletes.toMutableList(),
                 node,
@@ -297,9 +288,7 @@ class GraphProcessor(
             nodeName = node.name,
             nodeID = node.id,
             label = label,
-            fromRegionName = region?.name ?: "root",
             fromRegionID = region?.id ?: "root",
-            serializeWithIDs = IDs,
             nodeImplications = impactedNodeDeletes,
             edgeImplications = impactedEdgeDeletes.toMutableList(),
             node,
@@ -320,16 +309,12 @@ class GraphProcessor(
             graph.edges.remove(edge)
             DeleteEdge(
                 id = DeltaOperation.generateId(),
-                nodeAName = edge.a.name,
                 nodeAID = edge.a.id,
-                nodeBName = edge.b.name,
                 nodeBID = edge.b.id,
-                fromRegionName = region?.name ?: "root",
                 fromRegionID = region?.id ?: "root",
                 edgeID = edge.id,
                 edgeToDelete = edge,
-                containingGraph = graph,
-                serializeWithIDs = IDs)
+                containingGraph = graph)
         }
         graph.nodes.filterIsInstance<Region>().forEach { subRegion ->
             deleteOperations.addAll(deleteEdgesContaining(subRegion, subRegion.graph, node))
@@ -348,16 +333,12 @@ class GraphProcessor(
         graph.edges.remove(edge)
         val op = DeleteEdge(
             id = DeltaOperation.generateId(),
-            nodeAName = edge.a.name,
             nodeAID = edge.a.id,
-            nodeBName = edge.b.name,
             nodeBID = edge.b.id,
-            fromRegionName = region?.name ?: "root",
             fromRegionID = region?.id ?: "root",
             edgeID = edge.id,
             edgeToDelete = edge,
-            containingGraph = graph,
-            serializeWithIDs = IDs)
+            containingGraph = graph)
         stage.deltaSequence.pushOperation(op)
     }
 
@@ -391,14 +372,14 @@ class GraphProcessor(
         stage.deltaSequence.pushOperation(
             MoveNode(
                 id = DeltaOperation.generateId(),
-                nodeName = node.name,
                 nodeID = node.id,
-                targetRegionName = targetRegion?.name ?: "root",
                 targetRegionID = targetRegion?.id ?: "root",
-                oldRegionName = region?.name ?: "root",
                 oldRegionID = region?.id ?: "root",
                 edgeImplications = edgeImplications,
-                serializeWithIDs = IDs)
+                node = node,
+                fromGraph = graph,
+                toGraph = targetGraph
+                )
         )
     }
 
@@ -414,16 +395,14 @@ class GraphProcessor(
             result.add(
                 MoveEdge(
                     id = DeltaOperation.generateId(),
-                    nodeAName = edge.a.name,
                     nodeAID = edge.a.id,
-                    nodeBName = edge.b.name,
                     nodeBID = edge.b.id,
-                    newRegionName = newRegion?.name ?: "root",
                     newRegionID = newRegion?.id ?: "root",
-                    oldRegionName = oldRegion?.name ?: "root",
                     oldRegionID = oldRegion?.id ?: "root",
                     edgeID = edge.id,
-                    serializeWithIDs = IDs)
+                    edge = edge,
+                    oldGraph = oldGraph,
+                    newGraph = newGraph)
             )
         }
         return result
@@ -444,11 +423,9 @@ class GraphProcessor(
         } while (oldLabel == simpleNode.label)
         val op = ChangeLabel(
             id = DeltaOperation.generateId(),
-            nodeName = simpleNode.name,
             nodeID = simpleNode.id,
             newLabel = simpleNode.label,
             oldLabel = oldLabel,
-            serializeWithIDs = IDs,
             node = simpleNode)
         stage.deltaSequence.pushOperation(op)
     }
@@ -471,18 +448,14 @@ class GraphProcessor(
             if(graphB.nodes.isEmpty()) return
             graphB.randomNode(random)
         }
-        val edge = Edge(Graph.generateId(), nodeA, nodeB, serializeWithIDs = IDs)
+        val edge = Edge(Graph.generateId(), nodeA, nodeB)
         graph.edges.add(edge)
         val op = AddEdge(
             id = DeltaOperation.generateId(),
-            nodeAName = edge.a.name,
             nodeAID = edge.a.id,
-            nodeBName = edge.b.name,
             nodeBID = edge.b.id,
-            toRegionName = region?.name ?: "root",
             toRegionID = region?.id ?: "root",
             edgeID = edge.id,
-            serializeWithIDs = IDs,
             newEdge = edge,
             toRegion = region)
         stage.deltaSequence.pushOperation(op)

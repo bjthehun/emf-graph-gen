@@ -35,15 +35,11 @@ import kotlin.collections.ArrayList
  * <strong>This operation must assure that regions do not have cycles in their composition structure!</strong>
  */
 class MoveNode(/*all*/ id: String,
-               val nodeName: String?,
-               val nodeID: String?,
-               val targetRegionName: String? = "root",
-               val targetRegionID: String? = "root",
-               val oldRegionName: String? = "root",
-               val oldRegionID: String? = "root",
+               val nodeID: String,
+               val targetRegionID: String = "root",
+               val oldRegionID: String = "root",
                /*all*/
                val edgeImplications: MutableList<MoveEdge> = LinkedList(),
-               val serializeWithIDs: Boolean,
                /*one-way*/
                 val node: Node?,
                 val fromGraph: Graph?,
@@ -73,21 +69,12 @@ class MoveNode(/*all*/ id: String,
         val edgeImplicationRefs = operation.eClass().getEStructuralFeature("edgeImplications")
         (operation.eGet(edgeImplicationRefs) as java.util.List<Any>).addAll(edgeImplications.map { e -> e.buffer!! })
 
-        if(serializeWithIDs){
-            val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
-            val targetRegionIDAttribute = operation.eClass().getEStructuralFeature("targetRegionID")
-            val oldRegionIDAttribute = operation.eClass().getEStructuralFeature("oldRegionID")
-            operation.eSet(nodeIDAttribute, nodeID)
-            operation.eSet(targetRegionIDAttribute, targetRegionID)
-            operation.eSet(oldRegionIDAttribute, oldRegionID)
-        }else {
-            val nodeNameAttribute = operation.eClass().getEStructuralFeature("nodeName")
-            val targetRegionAttribute = operation.eClass().getEStructuralFeature("targetRegion")
-            val oldRegionAttribute = operation.eClass().getEStructuralFeature("oldRegion")
-            operation.eSet(nodeNameAttribute, nodeName)
-            operation.eSet(targetRegionAttribute, targetRegionName)
-            operation.eSet(oldRegionAttribute, oldRegionName)
-        }
+        val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
+        val targetRegionIDAttribute = operation.eClass().getEStructuralFeature("targetRegionID")
+        val oldRegionIDAttribute = operation.eClass().getEStructuralFeature("oldRegionID")
+        operation.eSet(nodeIDAttribute, nodeID)
+        operation.eSet(targetRegionIDAttribute, targetRegionID)
+        operation.eSet(oldRegionIDAttribute, oldRegionID)
 
         this.buffer = operation
         return operation
@@ -132,48 +119,31 @@ class MoveNode(/*all*/ id: String,
             for (moveEdge in edgeImplications) {
                 if (!other.edgeImplications.any { it.deepEquals(moveEdge) }) return false
             }
-            return if(serializeWithIDs){
-                nodeID == other.nodeID && targetRegionID == other.targetRegionID &&
+            return nodeID == other.nodeID && targetRegionID == other.targetRegionID &&
                         oldRegionID == other.oldRegionID
-            }else{
-                val res = nodeName == other.nodeName && targetRegionName == other.targetRegionName &&
-                        oldRegionName == other.oldRegionName
-                if(idEquals(other) && !res){
-                    throw AssertionError("Incoherent Comparison MoveNode: $this != $other")
-                }
-                res
-            }
         }
         return false
     }
 
     companion object {
 
-        fun parse(eObject: EObject, serializeWithIDs: Boolean): MoveNode {
+        fun parse(eObject: EObject): MoveNode {
 
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id"), true) as String
             val edgeImplications = (eObject.eGet(eObject.eClass().
             getEStructuralFeature("edgeImplications"), true) as List<EObject>).map { e ->
-                MoveEdge.parse(e, serializeWithIDs) } as MutableList<MoveEdge>
+                MoveEdge.parse(e) } as MutableList<MoveEdge>
 
-            var nodeName: String? = null
-            var targetRegionName: String? = null
-            var oldRegionName: String? = null
             var nodeID: String? = null
             var targetRegionID: String? = null
             var oldRegionID: String? = null
 
-            if(serializeWithIDs){
-                nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
-                targetRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("targetRegionID"), true) as String
-                oldRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegionID"), true) as String
-            }else {
-                nodeName = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeName"), true) as String
-                targetRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("targetRegion"), true) as String
-                oldRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegion"), true) as String
-            }
+            nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
+            targetRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("targetRegionID"), true) as String
+            oldRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegionID"), true) as String
 
-            return MoveNode(id, nodeName, nodeID, targetRegionName, targetRegionID, oldRegionName, oldRegionID, edgeImplications, serializeWithIDs,
+
+            return MoveNode(id, nodeID,  targetRegionID,  oldRegionID, edgeImplications,
                 null, null, null)
         }
     }

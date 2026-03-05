@@ -40,9 +40,7 @@ class DeleteNode(/*all*/        id: String,
                  /*all*/        val nodeName: String,
                  /*no id*/      val nodeID: String?,
                  /*all*/        val label: Label?,
-                 /*with id*/    val fromRegionName: String? = "root",
                  /*with id*/    val fromRegionID: String? = "root",
-                 /*all*/        val serializeWithIDs: Boolean,
                  /*all*/        val nodeImplications: MutableList<DeleteNode>,
                  /*all*/        val edgeImplications: MutableList<DeleteEdge>,
                                 val node: Node?,
@@ -133,15 +131,10 @@ class DeleteNode(/*all*/        id: String,
             operation.eSet(labelAttribute, label!!.getEEnumLiteral(this.label!!.name))
         }
 
-        if(serializeWithIDs){
-            val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
-            val fromRegionIDAttribute = operation.eClass().getEStructuralFeature("fromRegionID")
-            operation.eSet(nodeIDAttribute, nodeID)
-            operation.eSet(fromRegionIDAttribute, fromRegionID)
-        }else{
-            val fromRegionNameAttribute = operation.eClass().getEStructuralFeature("fromRegion")
-            operation.eSet(fromRegionNameAttribute, fromRegionName)
-        }
+        val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
+        val fromRegionIDAttribute = operation.eClass().getEStructuralFeature("fromRegionID")
+        operation.eSet(nodeIDAttribute, nodeID)
+        operation.eSet(fromRegionIDAttribute, fromRegionID)
 
         val nodeImplicationRefs = operation.eClass().getEStructuralFeature("nodeImplications")
         (operation.eGet(nodeImplicationRefs) as java.util.List<Any>).addAll(nodeImplications.map { e -> e.buffer!! })
@@ -161,24 +154,15 @@ class DeleteNode(/*all*/        id: String,
             for (deleteEdge in edgeImplications) {
                 if (!other.edgeImplications.any { it.deepEquals(deleteEdge) }) return false
             }
-            return if(serializeWithIDs) {
-                this.nodeName == other.nodeName && this.nodeID == other.nodeID &&
+            return this.nodeName == other.nodeName && this.nodeID == other.nodeID &&
                         this.fromRegionID == other.fromRegionID && this.label == other.label
-            }else {
-                val res = this.nodeName == other.nodeName && this.fromRegionName == other.fromRegionName &&
-                        this.label == other.label
-                if(idEquals(other) && !res){
-                    throw AssertionError("Incoherent Comparison DeleteNode: $this != $other")
-                }
-                res
-            }
         }
         return false
     }
 
     companion object {
 
-        fun parse(eObject: EObject, serializeWithIDs: Boolean): DeleteNode {
+        fun parse(eObject: EObject): DeleteNode {
 
             val nodeName = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeName"), true) as String
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id"), true) as String
@@ -192,22 +176,17 @@ class DeleteNode(/*all*/        id: String,
             }
 
             val nodeImplications = (eObject.eGet(eObject.eClass().getEStructuralFeature("nodeImplications")) as List<EObject>)
-                .map { e -> parse(e, serializeWithIDs) }.toMutableList()
+                .map { e -> parse(e) }.toMutableList()
             val edgeImplications = (eObject.eGet(eObject.eClass().getEStructuralFeature("edgeImplications")) as List<EObject>)
-                .map { e -> DeleteEdge.parse(e, serializeWithIDs) }.toMutableList()
+                .map { e -> DeleteEdge.parse(e) }.toMutableList()
 
-            var fromRegionName: String? = null
             var fromRegionID: String? = null
             var nodeID: String? = null
 
-            if(serializeWithIDs){
-                fromRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegionID"), true) as String
-                nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
-            }else{
-                fromRegionName = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegion"), true) as String
-            }
+            fromRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegionID"), true) as String
+            nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
 
-            return DeleteNode(id, nodeName, nodeID, label, fromRegionName, fromRegionID, serializeWithIDs, nodeImplications, edgeImplications,
+            return DeleteNode(id, nodeName, nodeID, label, fromRegionID,  nodeImplications, edgeImplications,
                 null, null)
         }
 

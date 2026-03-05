@@ -21,13 +21,12 @@ import ecore.EObjectSource
 import org.eclipse.emf.ecore.EObject
 import util.IndexedComparable
 
-abstract class Node(val id: String?, val name: String, val serializeWithIDs: Boolean = false) : 
+abstract class Node(val id: String, val name: String) :
     DeepComparable, IDComparable, BufferedObject(){
     abstract fun deepCopy(): Node
 
     override fun idEquals(other: Any): Boolean {
-        if(!serializeWithIDs) return false
-        return other is Node && other.serializeWithIDs && id == other.id
+        return other is Node && id == other.id
     }
 
 }

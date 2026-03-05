@@ -23,7 +23,7 @@ import org.eclipse.emf.ecore.EObject
 import util.GraphStats
 import java.util.*
 
-class Region(id: String?, name: String, val graph: Graph, serializeWithIDs: Boolean = false) : Node(id, name, serializeWithIDs), EObjectSource {
+class Region(id: String, name: String, val graph: Graph, serializeWithIDs: Boolean = false) : Node(id, name), EObjectSource {
 
     private val description = "Region"
 
@@ -32,7 +32,7 @@ class Region(id: String?, name: String, val graph: Graph, serializeWithIDs: Bool
     }
 
     override fun deepCopy(): Node {
-        return Region(id, name, graph.deepCopy(), serializeWithIDs)
+        return Region(id, name, graph.deepCopy())
     }
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
@@ -43,10 +43,8 @@ class Region(id: String?, name: String, val graph: Graph, serializeWithIDs: Bool
             val nameAttribute = region.eClass().getEStructuralFeature("name")
             val graph = region.eClass().getEStructuralFeature("graph")
 
-            if(serializeWithIDs) {
-                val idAttribute = region.eClass().getEStructuralFeature("id")
-                region.eSet(idAttribute, id)
-            }
+            val idAttribute = region.eClass().getEStructuralFeature("id")
+            region.eSet(idAttribute, id)
 
             region.eSet(nameAttribute, super.name)
             region.eSet(graph, this.graph.generate(classes, factory, filter, label, nodeType))
@@ -66,19 +64,18 @@ class Region(id: String?, name: String, val graph: Graph, serializeWithIDs: Bool
 
     companion object {
 
-        fun construct(predef: EObject, serializeWithIDs: Boolean): Region {
+        fun construct(predef: EObject): Region {
             val nameAttribute = predef.eClass().getEStructuralFeature("name")
             val name = predef.eGet(nameAttribute, true) as String
             val graphEObject = predef.eContents()[0]
 
             var regionID: String? = null
-            if(serializeWithIDs){
-                val idAttribute = predef.eClass().getEStructuralFeature("id")
-                regionID = predef.eGet(idAttribute, true) as String
-            }
+            val idAttribute = predef.eClass().getEStructuralFeature("id")
+            regionID = predef.eGet(idAttribute, true) as String
+
 
             //Graph ID will be set inside the Graph constructor
-            return Region(regionID, name, Graph(null, LinkedList(), LinkedList(), graphEObject, isRoot = false, serializeWithIDs), serializeWithIDs)
+            return Region(regionID, name, Graph(null, LinkedList(), LinkedList(), graphEObject, isRoot = false))
         }
 
     }

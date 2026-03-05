@@ -92,11 +92,13 @@ data class Configuration(
      * This operation does not lead to a stepwise export of the delta models.
      */
     val stepwiseExport: Boolean = false,
-
+    
     /**
-     * Toggle if the processor should export the EIDs of the graphs, nodes and edges.
+     * Toggle if the processor should output the delta sequences in the Vitruvius EChange format,
+     * or the deltagraph format.
+     * This option implies that withEIDs be set to true.
      */
-    val withEIDs: Boolean = false,
+    val outputVitruviusChanges: Boolean = false,
 
     val editProbabilities: String = "15:5:5:5:25:25:20"
 
@@ -111,5 +113,10 @@ data class Configuration(
         assert(branchEditLength >= 0)
         assert(branchEditFocus in 0.0..1.0)
         assert(!(stepwiseExport && atomicCounting))
+
+        if (branchNumber > 0 && branchEditLength == 0) {
+            println("WARNING: You are trying to create ${branchNumber} empty deltas.")
+            println("You probably want to set -l/--branch_edit_length to a value greater than 0.")
+        }
     }
 }

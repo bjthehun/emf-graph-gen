@@ -23,12 +23,12 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.impl.EEnumLiteralImpl
 import kotlin.random.Random
 
-class SimpleNode(id: String?, name: String, var label: Label, serializeWithIDs: Boolean = false) : Node(id, name, serializeWithIDs), EObjectSource {
+class SimpleNode(id: String, name: String, var label: Label) : Node(id, name), EObjectSource {
 
     private val description = "SimpleNode"
 
     override fun deepCopy(): Node {
-        return SimpleNode(id, name, label, serializeWithIDs)
+        return SimpleNode(id, name, label)
     }
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
@@ -37,10 +37,8 @@ class SimpleNode(id: String?, name: String, var label: Label, serializeWithIDs: 
         val nameAttribute = node.eClass().getEStructuralFeature("name")
         val labelAttribute = node.eClass().getEStructuralFeature("label")
 
-        if(serializeWithIDs){
-            val idAttribute = node.eClass().getEStructuralFeature("id")
-            node.eSet(idAttribute, id)
-        }
+        val idAttribute = node.eClass().getEStructuralFeature("id")
+        node.eSet(idAttribute, id)
 
         node.eSet(nameAttribute, super.name)
         node.eSet(labelAttribute, label!!.getEEnumLiteral(this.label.name))
@@ -64,7 +62,7 @@ class SimpleNode(id: String?, name: String, var label: Label, serializeWithIDs: 
             return Label.entries[index]
         }
 
-        fun construct(predef: EObject, serializeWithIDs: Boolean): SimpleNode {
+        fun construct(predef: EObject): SimpleNode {
             val nameAttribute = predef.eClass().getEStructuralFeature("name")
             val labelAttribute = predef.eClass().getEStructuralFeature("label")
             val name = predef.eGet(nameAttribute, true) as String
@@ -72,12 +70,11 @@ class SimpleNode(id: String?, name: String, var label: Label, serializeWithIDs: 
             val label = Label.entries[labelIndex]
 
             var nodeID: String? = null
-            if(serializeWithIDs){
-                val idAttribute = predef.eClass().getEStructuralFeature("id")
-                nodeID = predef.eGet(idAttribute, true) as String
-            }
+            val idAttribute = predef.eClass().getEStructuralFeature("id")
+            nodeID = predef.eGet(idAttribute, true) as String
 
-            return SimpleNode(nodeID, name, label, serializeWithIDs)
+
+            return SimpleNode(nodeID, name, label)
         }
 
     }
