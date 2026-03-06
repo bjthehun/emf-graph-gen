@@ -37,13 +37,11 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
      * Returns the atomic DeltaOperations required to fully execute this DeltaOperation.
      * Some operations, e.g. [MoveNode], have additional [deltamodel.DeltaOperation] that need
      * to be executed as well.
+     * This function automatically computes the operations required for flattening.
      *
      * @return [List]
      */
     abstract fun flatten(): List<DeltaOperation>
-
-    abstract fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>>
-
 
     /**
      * Returns the number of atomic DeltaOperations required to fully execute this DeltaOperation.
@@ -52,6 +50,11 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
      * @return Int
      */
     abstract fun getAtomicLength(): Int
+
+
+    abstract fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>>
+
+
 
     override fun idEquals(other: Any): Boolean {
         if(other is DeltaOperation){

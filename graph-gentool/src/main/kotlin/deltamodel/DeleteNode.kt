@@ -21,6 +21,7 @@ import graphmodel.Graph
 import graphmodel.Label
 import graphmodel.Node
 import graphmodel.Region
+import graphmodel.SimpleNode
 import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
@@ -44,17 +45,53 @@ class DeleteNode(/*all*/        id: String,
                  /*all*/        val nodeImplications: MutableList<DeleteNode>,
                  /*all*/        val edgeImplications: MutableList<DeleteEdge>,
                                 val node: Node?,
-                                val containingGraph: Graph?) : DeltaOperation(id) {
+                                val containingGraph: Graph?) : MultiDeltaOperation(id) {
 
     val description = "DeleteNode"
 
     override fun flatten(): List<DeltaOperation> {
-        val result: MutableList<DeltaOperation> = LinkedList()
-        for (op in edgeImplications){
-            result.addAll(op.flatten())
+        if (!generated) {
+            generated = true
+            // Edge Implications: Find Edges with node as source or target
+            val edgesToDeleteDirectly = containingGraph!!.edges
+                .filter{e -> e.a.id == nodeID || e.b.id == nodeID}
+            edgesToDeleteDirectly.forEach { e ->
+                edgeImplications.add(
+                    DeleteEdge(
+                        id = generateId(),
+                        nodeAID = e.a.id,
+                        nodeBID = e.b.id,
+                        fromRegionID = this.fromRegionID,
+                        edgeID = e.id,
+                        edgeToDelete = e,
+                        containingGraph = this.containingGraph
+                    )
+                )
+            }
+
+            // Node Implications: Delete all nodes, too
+            if (node is Region) {
+                val nodesToDeleteAlso = node.graph.nodes
+                nodesToDeleteAlso.forEach { n ->
+                    nodeImplications.add(
+                        DeleteNode(
+                            id = generateId(),
+                            nodeName = n.name,
+                            nodeID = n.id,
+                            label = if (n is SimpleNode) n.label else null,
+                            fromRegionID = node.id,
+                            nodeImplications = ArrayList(),
+                            edgeImplications = ArrayList(),
+                            node = n,
+                            containingGraph = node.graph
+                        )
+                    )
+                }
+            }
         }
-        for (op in nodeImplications){
-            result.addAll(op.flatten())
+        val result = ArrayList<DeltaOperation>(edgeImplications)
+        for (nodeImplication in nodeImplications) {
+            result.addAll(nodeImplication.flatten())
         }
         result.add(this)
         return result

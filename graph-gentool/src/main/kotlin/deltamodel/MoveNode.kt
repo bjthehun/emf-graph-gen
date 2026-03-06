@@ -45,15 +45,33 @@ class MoveNode(/*all*/ id: String,
                 val node: Node?,
                 val fromGraph: Graph?,
                 val toGraph:  Graph?
-    ) : DeltaOperation(id) {
+    ) : MultiDeltaOperation(id) {
 
     private val description = "MoveNode"
 
     override fun flatten(): List<DeltaOperation> {
-        val result: MutableList<DeltaOperation> = LinkedList()
-        for (op in edgeImplications){
-            result.addAll(op.flatten())
+        if (!generated) {
+            // Identify all edges to move
+            val edgesToMove = fromGraph!!.edges.filter {e -> e.a == node}
+            // Move Edges
+            edgesToMove.forEach { e ->
+                edgeImplications.add(
+                    MoveEdge(
+                        id = generateId(),
+                        edge = e,
+                        edgeID = e.id,
+                        nodeAID = e.a.id,
+                        nodeBID = e.b.id,
+                        oldGraph = fromGraph,
+                        oldRegionID = oldRegionID,
+                        newRegionID = targetRegionID,
+                        newGraph = toGraph
+                    )
+                )
+            }
+            generated = true
         }
+        val result = ArrayList<DeltaOperation>(edgeImplications)
         result.add(this)
         return result
     }
