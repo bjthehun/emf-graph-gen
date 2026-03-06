@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Graph
 import graphmodel.Node
 import graphmodel.Region
@@ -67,13 +68,12 @@ class AddNode(/*all*/       operationID: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Setup graph model factory
-        val graphFactory = GRAPH_METAMODEL_HANDLER
-        val classes = graphFactory.getClassMap()
-        val factory = graphFactory.getModelFactory()
-        val greyEnum = graphFactory.getEnumMap()["Label"]!!
-        val actualNodeType = graphFactory.getEnumMap()[nodeType.name]
+        val classes = ecoreHandler.getClassMap()
+        val factory = ecoreHandler.getModelFactory()
+        val greyEnum = ecoreHandler.getEnumMap()["Label"]!!
+        val actualNodeType = ecoreHandler.getEnumMap()[nodeType.name]
 
         // Create node EObject
         val nodeElement = node!!.generate(classes, factory, setOf("Node"),
@@ -129,6 +129,10 @@ class AddNode(/*all*/       operationID: String,
         return changes
     }
 
+    override fun getAtomicLength(): Int {
+        return 1
+    }
+
     override fun deepEquals(other: Any): Boolean {
         if(other is AddNode){
             return nodeName == other.nodeName && nodeType == other.nodeType &&
@@ -144,11 +148,8 @@ class AddNode(/*all*/       operationID: String,
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id"), true) as String
             val typeIndex = (eObject.eGet(eObject.eClass().getEStructuralFeature("nodeType"), true) as EEnumLiteralImpl).value
             val nodeType = NodeType.entries[typeIndex]
-
-            var toRegionID: String? = null
-            var nodeID: String? = null
-            toRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegionID"), true) as String
-            nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
+            val toRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegionID"), true) as String
+            val nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
 
             return AddNode(id, nodeName, nodeID, nodeType, toRegionID, null, null)
         }

@@ -16,9 +16,9 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Edge
 import graphmodel.Graph
-import graphmodel.Region
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
@@ -27,7 +27,6 @@ import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EReference
 import tools.vitruv.change.atomic.EChange
 import tools.vitruv.change.atomic.TypeInferringAtomicEChangeFactory
-import ecore.EcoreMetamodelHandler
 
 
 /**
@@ -40,7 +39,7 @@ class AddEdge(/*all*/       id: String,
               /*with id*/   val toRegionID: String? = "root",
               /*with id*/   val edgeID: String,
               /*one-way */  val newEdge: Edge?,
-              /*one-way */  val toRegion: Region?) : DeltaOperation(id) {
+              /*one-way */  val toGraph: Graph?) : DeltaOperation(id) {
 
     private val description = "AddEdge"
 
@@ -68,15 +67,19 @@ class AddEdge(/*all*/       id: String,
         return operation
     }
    
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         val changes = ArrayList<EChange<Any>>()
         // Set up EcoreMetamodelHandler for model element generation
-        val metamodelHandler = GRAPH_METAMODEL_HANDLER
-        val classes   = metamodelHandler.getClassMap()
-        val factory  = metamodelHandler.getModelFactory()
+
+        val classes   = ecoreHandler.getClassMap()
+        val factory  = ecoreHandler.getModelFactory()
         // Set up EChangeFactory
         val changeFactory = TypeInferringAtomicEChangeFactory.getInstance()
-
+        // Get Node
+        val nodeA = newEdge!!.a.generate(classes, factory, setOf("Node"), null, null)
+        val nodeB = newEdge.b.generate(classes, factory, setOf("Node"), null, null)
+        // Identify containing graph
+        val graphElement = toGraph!!.generate(classes, factory, setOf("Node"), null, null)
         // Get Edge EObject
         val edge = newEdge!!.generate(classes, factory, setOf("Edge"), null, null)
 
@@ -91,26 +94,25 @@ class AddEdge(/*all*/       id: String,
             edge.eGet(idAttribute))
         )
 
-        // Get Node Objects
-        val nodeA = newEdge.a.generate(classes, factory, setOf("Node"), null, null)
-        val nodeB = newEdge.b.generate(classes, factory, setOf("Node"), null, null)
+
         // Changes 3 and 4: InsertEReference
         val nodesReference = edge.eClass().getEStructuralFeature("nodes") as EReference
         changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeA, 0))
         changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeB, 0))
 
-        // Identify containing graph
-        val regionElement = toRegion!!.generate(classes, factory, setOf("Node"), null, null)
-        val graph = regionElement.eGet(regionElement.eClass().getEStructuralFeature("graph")) as EObject
         // Change 5: InsertEReference
         changes.add(
             changeFactory.createInsertReferenceChange(
-                graph,
-                graph.eClass().getEStructuralFeature("edges") as EReference,
+                graphElement,
+                graphElement.eClass().getEStructuralFeature("edges") as EReference,
                 edge,
                 0))
 
         return changes
+    }
+
+    override fun getAtomicLength(): Int {
+        return 1
     }
 
     override fun deepEquals(other: Any): Boolean {
@@ -131,15 +133,10 @@ class AddEdge(/*all*/       id: String,
             val idAttribute = eObject.eClass().getEStructuralFeature("id")
             val id = eObject.eGet(idAttribute, true) as String
 
-            var nodeAID: String? = null
-            var nodeBID: String? = null
-            var toRegionID: String? = null
-            var edgeID: String? = null
-
-            nodeAID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeAID")) as String
-            nodeBID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeBID")) as String
-            toRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegionID")) as String
-            edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
+            val nodeAID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeAID")) as String
+            val nodeBID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeBID")) as String
+            val toRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegionID")) as String
+            val edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
             
             return AddEdge(id,  nodeAID,  nodeBID,  toRegionID, edgeID,   null, null)
         }

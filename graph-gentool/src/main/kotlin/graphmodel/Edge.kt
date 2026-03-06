@@ -51,7 +51,10 @@ class Edge(
         edge.eSet(idAttribute, id)
 
         val nodesReferences = edge.eClass().getEStructuralFeature("nodes")
-        (edge.eGet(nodesReferences) as java.util.List<Any>).addAll(listOf(a.buffer!!, b.buffer!!))
+        (edge.eGet(nodesReferences) as java.util.List<Any>).addAll(listOf(
+            a.buffer!!,
+            b.buffer!!
+        ))
         buffer = edge
         return edge
     }

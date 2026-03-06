@@ -16,6 +16,7 @@
 package graphmodel
 
 import ecore.EObjectSource
+import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
@@ -37,11 +38,14 @@ class SimpleNode(id: String, name: String, var label: Label) : Node(id, name), E
         val nameAttribute = node.eClass().getEStructuralFeature("name")
         val labelAttribute = node.eClass().getEStructuralFeature("label")
 
+        // Get the _actual_ enum value that we want
+        val labelEnum = ((labelAttribute as EAttribute).eAttributeType as EEnum) // don't ask
+
         val idAttribute = node.eClass().getEStructuralFeature("id")
         node.eSet(idAttribute, id)
 
         node.eSet(nameAttribute, super.name)
-        node.eSet(labelAttribute, label!!.getEEnumLiteral(this.label.name))
+        node.eSet(labelAttribute, labelEnum.getEEnumLiteral(this.label.name))
 
         super.buffer = node
         return node
@@ -69,7 +73,7 @@ class SimpleNode(id: String, name: String, var label: Label) : Node(id, name), E
             val labelIndex = (predef.eGet(labelAttribute, true) as EEnumLiteralImpl).value
             val label = Label.entries[labelIndex]
 
-            var nodeID: String? = null
+            var nodeID: String?
             val idAttribute = predef.eClass().getEStructuralFeature("id")
             nodeID = predef.eGet(idAttribute, true) as String
 

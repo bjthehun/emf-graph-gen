@@ -16,14 +16,11 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Label
 import graphmodel.Node
 import graphmodel.SimpleNode
-import org.eclipse.emf.ecore.EAttribute
-import org.eclipse.emf.ecore.EClass
-import org.eclipse.emf.ecore.EEnum
-import org.eclipse.emf.ecore.EFactory
-import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.*
 import org.eclipse.emf.ecore.impl.EEnumLiteralImpl
 import tools.vitruv.change.atomic.EChange
 
@@ -61,18 +58,17 @@ class ChangeLabel(/*all*/       id: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
-        val eObjectCreator = GRAPH_METAMODEL_HANDLER
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Get SimpleNode
         val nodeElement = node!!.generate(
-            eObjectCreator.getClassMap(),
-            eObjectCreator.getModelFactory(),
+            ecoreHandler.getClassMap(),
+            ecoreHandler.getModelFactory(),
             nodeType = null,
             filter = setOf(),
             label = null
         )
         // Translate old and new enums
-        val labelENumInEcore = eObjectCreator.getEnumMap()["Label"]!!
+        val labelENumInEcore = ecoreHandler.getEnumMap()["Label"]!!
         val oldLabelInEcore  = labelENumInEcore.getEEnumLiteral(oldLabel.toString())
         val newLabelInEcore  = labelENumInEcore.getEEnumLiteral(newLabel.toString())
 
@@ -88,6 +84,10 @@ class ChangeLabel(/*all*/       id: String,
             )
         )
         return changes
+    }
+
+    override fun getAtomicLength(): Int {
+        return 1
     }
 
     override fun deepEquals(other: Any): Boolean {
@@ -106,7 +106,7 @@ class ChangeLabel(/*all*/       id: String,
             val newLabel = Label.entries[(eObject.eGet(eObject.eClass().getEStructuralFeature("newLabel")) as EEnumLiteralImpl).value]
             val oldLabel = Label.entries[(eObject.eGet(eObject.eClass().getEStructuralFeature("oldLabel")) as EEnumLiteralImpl).value]
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id")) as String
-            var nodeID: String = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID")) as String
+            val nodeID: String = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID")) as String
 
             return ChangeLabel(id, nodeID, newLabel, oldLabel, null)
         }

@@ -68,8 +68,8 @@ class Graph(
 
     fun getStats(recursive: Boolean): GraphStats {
         val stats = GraphStats(
-            nodes.filterIsInstance<SimpleNode>().map { n -> n as SimpleNode }.toMutableSet(),
-            nodes.filterIsInstance<Region>().map { n -> n as Region }.toMutableSet(),
+            nodes.filterIsInstance<SimpleNode>().toMutableSet(),
+            allRegions().toMutableSet(),
             edges.toMutableSet()
         )
         if (recursive) {
@@ -94,7 +94,7 @@ class Graph(
         var count = edges.size - countNonDistortedEdges
 
         if (recursive) {
-            val recursiveResults = nodes.filterIsInstance<Region>()
+            val recursiveResults = allRegions()
                 .map { r -> r.graph.countDistortedEdges(true) }
 
             var subCount = 0
@@ -127,7 +127,7 @@ class Graph(
                         break
                     }
                 }
-                if (progress) break;
+                if (progress) break
             }
             if (!progress) return false
         }
@@ -137,7 +137,7 @@ class Graph(
     private fun getNodesRecursive(): Set<Node> {
         val nodeSet: MutableSet<Node> = TreeSet()
         nodeSet.addAll(nodes)
-        val regions = nodes.filterIsInstance<Region>()
+        val regions = allRegions()
         for(region in regions){
             nodeSet.addAll(region.graph.getNodesRecursive())
         }
@@ -171,7 +171,7 @@ class Graph(
             edges.add(genEdge)
         }
 
-        this.nodes.filterIsInstance<Region>().forEach { region ->
+        this.allRegions().forEach { region ->
             region.graph.constructEdgesFromPredef(nodes)
         }
     }
@@ -198,8 +198,8 @@ class Graph(
         for(edge in edges){
             graphCopy.edges.add(edge.deepCopy(allCopyNodes))
         }
-        val regions = nodes.filterIsInstance<Region>()
-        val copyRegions = graphCopy.nodes.filterIsInstance<Region>()
+        val regions = allRegions()
+        val copyRegions = graphCopy.allRegions()
         for (region in regions) {
             val copyRegion = copyRegions.find { r -> r.name == region.name }!!
             region.graph.deepCopyEdges(copyRegion.graph, allCopyNodes)
@@ -210,12 +210,20 @@ class Graph(
         val node = nodes.find { n -> n.name == name }
         if (node != null) return node
 
-        for (region in nodes.filterIsInstance<Region>()) {
+        for (region in allRegions()) {
             val foundNode = region.graph.findNode(name)
             if (foundNode != null) return foundNode
         }
 
         return null
+    }
+
+    fun allRegions(): List<Region> {
+        return nodes.filterIsInstance<Region>()
+    }
+
+    fun simpleSize(): Int {
+        return nodes.size + edges.size
     }
 
     fun findRegion(name: String): Region {
@@ -239,7 +247,7 @@ class Graph(
             val eSimpleNodes = nodes.filterIsInstance<SimpleNode>().map { n ->
                 n.generate(classes, factory, filter, label, nodeType)
             }
-            val eRegions = nodes.filterIsInstance<Region>().map { n ->
+            val eRegions = allRegions().map { n ->
                 n.generate(classes, factory, filter, label, nodeType)
             }
             val eNodes = LinkedList<EObject>()
@@ -251,7 +259,7 @@ class Graph(
             graph.eSet(edgesComposition, LinkedList<Any>())
             val eEdges = edges.map { edge -> edge.generate(classes, factory, filter, label, nodeType) }
             (graph.eGet(edgesComposition) as java.util.List<EObject>).addAll(eEdges)
-            nodes.filterIsInstance<Region>().forEach { r -> r.generate(classes, factory, filter, label, nodeType) }
+            allRegions().forEach { r -> r.generate(classes, factory, filter, label, nodeType) }
         }
         return graph
     }

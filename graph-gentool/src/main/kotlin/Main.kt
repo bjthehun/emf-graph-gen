@@ -21,6 +21,7 @@ import graphmodel.Graph
 import graphmodel.Node
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
 import picocli.CommandLine
 import util.Branch
 import util.Configuration
@@ -205,13 +206,14 @@ fun runWithConfig(configuration: Configuration): Environment {
         val deltaMetamodelPath: String = createTempMetamodelFile(deltaMetaName).toString()
         val deltaMetamodelURI = URI.createFileURI(deltaMetamodelPath)
         val branches = createOutputBranchModelFiles(configuration, File(baseModel.toFileString()))
-        processBranches(branches, configuration, graphMetamodelURI, deltaMetamodelURI, environment)
+        processBranches(ecoreHandler, branches, configuration, graphMetamodelURI, deltaMetamodelURI, environment)
     }
 
     return environment
 }
 
 fun processBranches(
+    ecoreHandler: EcoreHandler,
     branches: List<Branch>, configuration: Configuration, graphMetamodelURI: URI,
     deltaMetamodelURI: URI, environment: Environment
 ) {
@@ -259,8 +261,8 @@ fun processBranches(
         val startTimeProcessing = System.currentTimeMillis()
         val graphProcessor = GraphProcessor(graph!!, configuration, changeOperationWeights)
 
-        var iterationCounter: Int = 0
-        var deltaIterationCounter: Int = 0
+        var iterationCounter = 0
+        var deltaIterationCounter = 0
 
         graphProcessor.exec(
             { stage: Stage ->
@@ -268,7 +270,7 @@ fun processBranches(
                 iterationCounter++
             },
             { stage: Stage ->
-                persistDeltas(deltaEcoreHandlerSet[deltaIterationCounter], stage, environment)
+                persistDeltas(ecoreHandler, deltaEcoreHandlerSet[deltaIterationCounter], stage, environment)
                 deltaIterationCounter++
             })
 
@@ -296,6 +298,7 @@ fun persistGraph(
 }
 
 fun persistDeltas(
+    graphEcoreHandler: EcoreHandler,
     deltaEcoreHandler: EcoreHandler, stage: Stage, environment: Environment
 ) {
     val deltaClassMap = deltaEcoreHandler.getClassMap()
@@ -303,6 +306,12 @@ fun persistDeltas(
     val deltaNodeTypes = deltaEcoreHandler.getEnumMap()["NodeType"]!!
     val deltaRoot = deltaEcoreHandler.getModelRoot()
     val rootSequence = DeltaSequence(stage.deltaSequence.deltaOperations, deltaRoot)
+//    val vitruvChanges = rootSequence.toVitruviusEChanges(graphEcoreHandler)
+//
+//    val resourceSet = ResourceSetImpl()
+//    val res = resourceSet.createResource(URI.createFileURI("foobAr"))
+//    res.contents.addAll(vitruvChanges)
+//    res.save(null)
 
     rootSequence.generate(deltaClassMap, deltaEcoreHandler.getModelFactory(), TreeSet(), deltaLabels, deltaNodeTypes)
     environment.branchDeltas[environment.branchDeltas.size-1].add(rootSequence)

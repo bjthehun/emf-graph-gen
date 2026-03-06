@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Graph
 import graphmodel.Node
 import graphmodel.Region
@@ -57,6 +58,17 @@ class MoveNode(/*all*/ id: String,
         return result
     }
 
+    /**
+     * Returns the number of atomic [DeltaOperation]s required.
+     * In order to move one node, additional [MoveEdge] operations are required for each [graphmodel.Edge]
+     * that start from [node].
+     *
+     * @return Int
+     */
+    override fun getAtomicLength(): Int {
+        return 1 + fromGraph!!.edges.count { edge -> edge.a.id == nodeID }
+    }
+
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                           label: EEnum?, nodeType: EEnum?): EObject {
 
@@ -80,11 +92,10 @@ class MoveNode(/*all*/ id: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // EObject factory
-        val ecoreMetamodelHandler = GRAPH_METAMODEL_HANDLER
-        val eClasses = ecoreMetamodelHandler.getClassMap()
-        val eFactory = ecoreMetamodelHandler.getModelFactory()
+        val eClasses = ecoreHandler.getClassMap()
+        val eFactory = ecoreHandler.getModelFactory()
 
         // Create edge EObject
         val edgeEObject = node!!.generate(eClasses, eFactory, setOf(), null, null)
@@ -96,7 +107,7 @@ class MoveNode(/*all*/ id: String,
             .getEStructuralFeature("edges") as EReference
 
         val atomicEChangeFactory = ATOMIC_CHANGE_FACTORY()
-        val changes = ArrayList(edgeImplications.flatMap { op -> op.toVitruviusEChanges() })
+        val changes = ArrayList(edgeImplications.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) })
         // 1. RemoveEReference from old graph
         changes.add(atomicEChangeFactory.createRemoveReferenceChange(
             fromGraphEObject,
@@ -134,13 +145,9 @@ class MoveNode(/*all*/ id: String,
             getEStructuralFeature("edgeImplications"), true) as List<EObject>).map { e ->
                 MoveEdge.parse(e) } as MutableList<MoveEdge>
 
-            var nodeID: String? = null
-            var targetRegionID: String? = null
-            var oldRegionID: String? = null
-
-            nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
-            targetRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("targetRegionID"), true) as String
-            oldRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegionID"), true) as String
+            val nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
+            val targetRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("targetRegionID"), true) as String
+            val oldRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegionID"), true) as String
 
 
             return MoveNode(id, nodeID,  targetRegionID,  oldRegionID, edgeImplications,

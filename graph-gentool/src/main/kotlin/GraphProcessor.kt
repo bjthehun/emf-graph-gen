@@ -307,14 +307,15 @@ class GraphProcessor(
         val deleteOperations: MutableList<DeleteEdge> = LinkedList<DeleteEdge>()
         for (edge in edgesToDelete){
             graph.edges.remove(edge)
-            DeleteEdge(
-                id = DeltaOperation.generateId(),
-                nodeAID = edge.a.id,
-                nodeBID = edge.b.id,
-                fromRegionID = region?.id ?: "root",
-                edgeID = edge.id,
-                edgeToDelete = edge,
-                containingGraph = graph)
+            deleteOperations.add(DeleteEdge(
+                    id = DeltaOperation.generateId(),
+                    nodeAID = edge.a.id,
+                    nodeBID = edge.b.id,
+                    fromRegionID = region?.id ?: "root",
+                    edgeID = edge.id,
+                    edgeToDelete = edge,
+                    containingGraph = graph)
+            )
         }
         graph.nodes.filterIsInstance<Region>().forEach { subRegion ->
             deleteOperations.addAll(deleteEdgesContaining(subRegion, subRegion.graph, node))
@@ -457,7 +458,7 @@ class GraphProcessor(
             toRegionID = region?.id ?: "root",
             edgeID = edge.id,
             newEdge = edge,
-            toRegion = region)
+            toGraph = graph)
         stage.deltaSequence.pushOperation(op)
     }
 

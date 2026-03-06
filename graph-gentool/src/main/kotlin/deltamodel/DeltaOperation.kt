@@ -20,9 +20,7 @@ import ecore.DeepComparable
 import ecore.EObjectSource
 import ecore.IDComparable
 import ecore.EcoreHandler
-import ecore.EcoreMetamodelHandler
 import org.eclipse.emf.ecore.EObject
-import org.eclipse.emf.common.util.URI
 import util.IndexedComparable
 import java.util.*
 import tools.vitruv.change.atomic.EChange
@@ -35,13 +33,25 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
      */
     var buffer: EObject? = null
 
+    /**
+     * Returns the atomic DeltaOperations required to fully execute this DeltaOperation.
+     * Some operations, e.g. [MoveNode], have additional [deltamodel.DeltaOperation] that need
+     * to be executed as well.
+     *
+     * @return [List]
+     */
     abstract fun flatten(): List<DeltaOperation>
 
-    abstract fun toVitruviusEChanges(): List<EChange<Any>>
+    abstract fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>>
 
-    fun getAtomicLength(): Int  {
-        return flatten().size
-    }
+
+    /**
+     * Returns the number of atomic DeltaOperations required to fully execute this DeltaOperation.
+     * The following invariant must hold: flatten().size == getAtomicLength()
+     *
+     * @return Int
+     */
+    abstract fun getAtomicLength(): Int
 
     override fun idEquals(other: Any): Boolean {
         if(other is DeltaOperation){
@@ -52,21 +62,7 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
 
     companion object {
         /**
-         * Constant type of graph metamodel
-         * Change to "labelgraph" when disabling IDs
-         */
-        const val GRAPH_METAMODEL_TYPE = "idlabelgraph"
-
-        /**
-         * Graph metamodel handler
-         */
-        var GRAPH_METAMODEL_HANDLER: EcoreMetamodelHandler = EcoreMetamodelHandler(
-            URI.createFileURI(
-                object {}.javaClass.getResource("/" + GRAPH_METAMODEL_TYPE + ".ecore")!!.path
-            )
-        )
-        /**
-         * Atomic Change factory
+         * Atomic Vitruvius Change factory.
          */
         fun ATOMIC_CHANGE_FACTORY() = TypeInferringAtomicEChangeFactory.getInstance()
     

@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Edge
 import graphmodel.Graph
 import org.eclipse.emf.ecore.EAttribute
@@ -64,20 +65,21 @@ class DeleteEdge(/*all*/    id: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Set up EObject factory
-        val eObjectFactory = GRAPH_METAMODEL_HANDLER
-        val classes = eObjectFactory.getClassMap()
-        val factory = eObjectFactory.getModelFactory()
-        // Retrieve Edge EObject
-        val edgeEObject = edgeToDelete!!.generate(classes, factory, setOf(), null, null)
-        val edgeEClass = edgeEObject.eClass()
-        // Retrieve Node EObjects
-        val nodeAEObject = edgeToDelete.a.generate(classes, factory, setOf(), null, null)
-        val nodeBEObject = edgeToDelete.a.generate(classes, factory, setOf(), null, null)
-        val edgeNodeRefs = edgeEClass.getEStructuralFeature("nodes") as EReference
+        val classes = ecoreHandler.getClassMap()
+        val factory = ecoreHandler.getModelFactory()
         // Retrieve containing Graph
         val graphEObject = containingGraph!!.generate(classes, factory, setOf(), null, null)
+        // Retrieve Node EObjects
+        val nodeAEObject = edgeToDelete!!.a.generate(classes, factory, setOf("Node"), null, null)
+        val nodeBEObject = edgeToDelete.b.generate(classes, factory, setOf("Node"), null, null)
+        // Retrieve Edge EObject
+        val edgeEObject = edgeToDelete.generate(classes, factory, setOf(), null, null)
+        val edgeEClass = edgeEObject.eClass()
+
+        val edgeNodeRefs = edgeEClass.getEStructuralFeature("nodes") as EReference
+
 
         val eChangeFactory = TypeInferringAtomicEChangeFactory.getInstance()
         val changes = ArrayList<EChange<Any>>()
@@ -116,6 +118,10 @@ class DeleteEdge(/*all*/    id: String,
         return changes
     }
 
+    override fun getAtomicLength(): Int {
+        return 1
+    }
+
     override fun deepEquals(other: Any): Boolean {
         if(other is DeleteEdge){
             return nodeAID == other.nodeAID && nodeBID == other.nodeBID &&
@@ -128,16 +134,11 @@ class DeleteEdge(/*all*/    id: String,
 
         fun parse(eObject: EObject): DeleteEdge {
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id")) as String
-            
-            var nodeAID: String? = null
-            var nodeBID: String? = null
-            var fromRegionID: String? = null
-            var edgeID: String? = null
 
-            nodeAID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeAID")) as String
-            nodeBID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeBID")) as String
-            fromRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegionID")) as String
-            edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
+            val nodeAID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeAID")) as String
+            val nodeBID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeBID")) as String
+            val fromRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegionID")) as String
+            val edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
 
             return DeleteEdge(id,  nodeAID, nodeBID,  fromRegionID, edgeID, null, null)
         }

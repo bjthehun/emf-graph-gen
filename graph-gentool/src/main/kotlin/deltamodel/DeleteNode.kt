@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Graph
 import graphmodel.Label
 import graphmodel.Node
@@ -25,7 +26,6 @@ import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
 import org.eclipse.emf.ecore.EObject
-import org.eclipse.emf.ecore.impl.EEnumImpl
 import org.eclipse.emf.ecore.impl.EEnumLiteralImpl
 import tools.vitruv.change.atomic.EChange
 import java.util.*
@@ -60,15 +60,15 @@ class DeleteNode(/*all*/        id: String,
         return result
     }
 
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Apply DeleteEdges, DeleteNodes for implications first
-        val edgeImplicationEChanges = edgeImplications.flatMap { op -> op.toVitruviusEChanges() }
-        val nodeImplicationEChanges = nodeImplications.flatMap { op -> op.toVitruviusEChanges() }
+        val edgeImplicationEChanges = edgeImplications.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) }
+        val nodeImplicationEChanges = nodeImplications.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) }
 
         // EObject Factory
-        val metamodelHandler = GRAPH_METAMODEL_HANDLER
-        val eClasses = metamodelHandler.getClassMap()
-        val eFactory = metamodelHandler.getModelFactory()
+
+        val eClasses = ecoreHandler.getClassMap()
+        val eFactory = ecoreHandler.getModelFactory()
         val nodeEObject = node!!.generate(eClasses, eFactory, setOf("Node"), null, null)
         val nodeEClass = nodeEObject.eClass()
 
@@ -82,7 +82,7 @@ class DeleteNode(/*all*/        id: String,
         // 0. Unset Label, if it is set
         if (label != null) {
             val labelEnumValue =
-                metamodelHandler.getEnumMap()["Label"]!!.getEEnumLiteral(label.toString())
+                ecoreHandler.getEnumMap()["Label"]!!.getEEnumLiteral(label.toString())
             changes.add(eChangeCreator.createReplaceSingleAttributeChange(
                 nodeEObject,
                 nodeEClass.getEStructuralFeature("label") as EAttribute,
@@ -112,6 +112,27 @@ class DeleteNode(/*all*/        id: String,
         return changes
     }
 
+    /**
+     * Counts the number of atomic [deltamodel.DeleteEdge] and [DeleteNode] operations required to delete [node].
+     * One operation is required to delete [node] itself, and one operation each to delete each edge to it.
+     *
+     * In addition, when [node] is a [Region], we recursively need to delete each [Graph], i.e. each [Node] and
+     * each [graphmodel.Edge] in it.
+     */
+    override fun getAtomicLength(): Int {
+        var nodeCosts = 1 + containingGraph!!
+            .edges.count { e -> e.a.idEquals(node!!) || e.b.idEquals(node) }
+        if (node is Region) {
+            nodeCosts += countAllGraphElements(node.graph)
+        }
+        return nodeCosts
+    }
+
+    private fun countAllGraphElements(graph: Graph): Int {
+        return graph.simpleSize() + graph.allRegions()
+                .sumOf { region -> countAllGraphElements(region.graph) }
+    }
+
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                           label: EEnum?, nodeType: EEnum?): EObject {
 
@@ -128,7 +149,7 @@ class DeleteNode(/*all*/        id: String,
         //Because it can be a Region without a label
         if(this.label !== null){
             val labelAttribute = operation.eClass().getEStructuralFeature("label")
-            operation.eSet(labelAttribute, label!!.getEEnumLiteral(this.label!!.name))
+            operation.eSet(labelAttribute, label!!.getEEnumLiteral(this.label.name))
         }
 
         val nodeIDAttribute = operation.eClass().getEStructuralFeature("nodeID")
@@ -180,11 +201,8 @@ class DeleteNode(/*all*/        id: String,
             val edgeImplications = (eObject.eGet(eObject.eClass().getEStructuralFeature("edgeImplications")) as List<EObject>)
                 .map { e -> DeleteEdge.parse(e) }.toMutableList()
 
-            var fromRegionID: String? = null
-            var nodeID: String? = null
-
-            fromRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegionID"), true) as String
-            nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
+            val fromRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("fromRegionID"), true) as String
+            val nodeID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeID"), true) as String
 
             return DeleteNode(id, nodeName, nodeID, label, fromRegionID,  nodeImplications, edgeImplications,
                 null, null)

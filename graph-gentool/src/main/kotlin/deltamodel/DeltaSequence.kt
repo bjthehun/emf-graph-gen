@@ -18,8 +18,8 @@ package deltamodel
 
 import ecore.DeepComparable
 import ecore.EObjectSource
+import ecore.EcoreHandler
 import ecore.IDComparable
-import graphmodel.Graph
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.EFactory
@@ -39,7 +39,7 @@ class DeltaSequence(
     init {
         if (deltaOperations.isEmpty() && predef != null){
             val operationsComposition = predef.eClass().getEStructuralFeature("deltaOperations")
-            val eDeltaOperations = predef.eGet(operationsComposition) as java.util.List<EObject>
+            val eDeltaOperations = predef.eGet(operationsComposition) as List<EObject>
             for (eDeltaOperation in eDeltaOperations){
 
                 val name = eDeltaOperation.eClass().name
@@ -118,8 +118,8 @@ class DeltaSequence(
         return deltaSequence
     }
 
-    fun toVitruviusEChanges(): List<EChange<Any>> {
-        return deltaOperations.flatMap { op -> op.toVitruviusEChanges() }
+    fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+        return deltaOperations.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) }
     }
 
     override fun deepEquals(other: Any): Boolean {

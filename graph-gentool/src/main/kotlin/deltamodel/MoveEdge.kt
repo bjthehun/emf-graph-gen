@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EcoreHandler
 import graphmodel.Edge
 import graphmodel.Graph
 import graphmodel.Region
@@ -81,11 +82,10 @@ class MoveEdge(/*all*/ id: String,
         return false
     }
 
-    override fun toVitruviusEChanges(): List<EChange<Any>> {
+    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // EObject factory
-        val ecoreMetamodelHandler = GRAPH_METAMODEL_HANDLER
-        val eClasses = ecoreMetamodelHandler.getClassMap()
-        val eFactory = ecoreMetamodelHandler.getModelFactory()
+        val eClasses = ecoreHandler.getClassMap()
+        val eFactory = ecoreHandler.getModelFactory()
 
         // Create edge EObject
         val edgeEObject = edge!!.generate(eClasses, eFactory, setOf(), null, null)
@@ -115,24 +115,20 @@ class MoveEdge(/*all*/ id: String,
         return changes
     }
 
+    override fun getAtomicLength(): Int {
+        return 1
+    }
+
     companion object {
 
         fun parse(eObject: EObject): MoveEdge {
 
             val id = eObject.eGet(eObject.eClass().getEStructuralFeature("id")) as String
-
-
-            var nodeAID: String? = null
-            var nodeBID: String? = null
-            var edgeID: String? = null
-            var newRegionID: String? = null
-            var oldRegionID: String? = null
-
-            nodeAID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeAID")) as String
-            nodeBID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeBID")) as String
-            newRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("newRegionID")) as String
-            oldRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegionID")) as String
-            edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
+            val nodeAID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeAID")) as String
+            val nodeBID = eObject.eGet(eObject.eClass().getEStructuralFeature("nodeBID")) as String
+            val newRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("newRegionID")) as String
+            val oldRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("oldRegionID")) as String
+            val edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
 
 
             return MoveEdge(id, nodeAID,  nodeBID, edgeID,  newRegionID,
