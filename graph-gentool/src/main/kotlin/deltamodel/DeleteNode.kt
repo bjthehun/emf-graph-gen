@@ -45,15 +45,38 @@ class DeleteNode(/*all*/        id: String,
                  /*all*/        val nodeImplications: MutableList<DeleteNode>,
                  /*all*/        val edgeImplications: MutableList<DeleteEdge>,
                                 val node: Node?,
-                                val containingGraph: Graph?) : MultiDeltaOperation(id) {
+                                val containingGraph: Graph?,
+                                val directDelete: Boolean = false) : MultiDeltaOperation(id) {
 
     val description = "DeleteNode"
+
+    /**
+     * Counts the number of atomic [deltamodel.DeleteEdge] and [DeleteNode] operations required to delete [node].
+     * One operation is required to delete [node] itself, and one operation each to delete each edge to it.
+     *
+     * In addition, when [node] is a [Region], we recursively need to delete each [Graph], i.e. each [Node] and
+     * each [graphmodel.Edge] in it.
+     */
+    override fun estimateOperations(): Int {
+        var nodeCosts = 1 + containingGraph!!.edges.count{ e -> e.a.id == nodeID || e.b.id == nodeID }
+        if (node is Region) {
+            nodeCosts += countAllGraphElements(node.graph)
+        }
+        return nodeCosts
+    }
+
+    private fun countAllGraphElements(graph: Graph): Int {
+        return graph.simpleSize() + graph.allRegions()
+            .sumOf { region -> countAllGraphElements(region.graph) }
+    }
 
     override fun flatten(): List<DeltaOperation> {
         if (!generated) {
             generated = true
             // Edge Implications: Find Edges with node as source or target
             val edgesToDeleteDirectly = containingGraph!!.edges
+                // directDelete == false -> recursive delete,
+                // one DeleteEdge operation is enough
                 .filter{e -> e.a.id == nodeID || e.b.id == nodeID}
             edgesToDeleteDirectly.forEach { e ->
                 edgeImplications.add(
@@ -94,7 +117,17 @@ class DeleteNode(/*all*/        id: String,
             result.addAll(nodeImplication.flatten())
         }
         result.add(this)
-        return result
+        // Deduplicate on top-level deletes
+        if (directDelete) {
+            println("Voodoo dolls")
+        }
+        return if (directDelete) {
+            result.distinctBy {
+                if (it is DeleteEdge) it.edgeID else if (it is DeleteNode) it.nodeID else it.id
+            }
+        } else {
+            result
+        }
     }
 
     override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
@@ -149,21 +182,7 @@ class DeleteNode(/*all*/        id: String,
         return changes
     }
 
-    /**
-     * Counts the number of atomic [deltamodel.DeleteEdge] and [DeleteNode] operations required to delete [node].
-     * One operation is required to delete [node] itself, and one operation each to delete each edge to it.
-     *
-     * In addition, when [node] is a [Region], we recursively need to delete each [Graph], i.e. each [Node] and
-     * each [graphmodel.Edge] in it.
-     */
-    override fun getAtomicLength(): Int {
-        var nodeCosts = 1 + containingGraph!!
-            .edges.count { e -> e.a.idEquals(node!!) || e.b.idEquals(node) }
-        if (node is Region) {
-            nodeCosts += countAllGraphElements(node.graph)
-        }
-        return nodeCosts
-    }
+
 
     /**
      * Delete all edges leading to or from this node (see [edgeImplications]), and then
@@ -175,10 +194,7 @@ class DeleteNode(/*all*/        id: String,
         containingGraph!!.nodes.remove(node)
     }
 
-    private fun countAllGraphElements(graph: Graph): Int {
-        return graph.simpleSize() + graph.allRegions()
-                .sumOf { region -> countAllGraphElements(region.graph) }
-    }
+
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                           label: EEnum?, nodeType: EEnum?): EObject {

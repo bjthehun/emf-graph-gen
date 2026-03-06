@@ -39,7 +39,8 @@ class AddEdge(/*all*/       id: String,
               /*with id*/   val toRegionID: String? = "root",
               /*with id*/   val edgeID: String,
               /*one-way */  var newEdge: Edge?,
-              /*one-way */  val toGraph: Graph?) : DeltaOperation(id) {
+              /*one-way */  val toGraph: Graph?,
+              /*generate */ val nodeBGraph: Graph?) : DeltaOperation(id) {
 
     private val description = "AddEdge"
 
@@ -75,7 +76,7 @@ class AddEdge(/*all*/       id: String,
         newEdge = Edge(
             edgeID,
             a = toGraph!!.findNodeById(nodeAID)!!,
-            b = toGraph.findNodeById(nodeBID)!!
+            b = nodeBGraph!!.findNodeById(nodeBID)!!
         )
         toGraph.edges.add(newEdge!!)
     }
@@ -90,7 +91,7 @@ class AddEdge(/*all*/       id: String,
         val changeFactory = TypeInferringAtomicEChangeFactory.getInstance()
         // Get Node
         val nodeA = newEdge!!.a.generate(classes, factory, setOf("Node"), null, null)
-        val nodeB = newEdge.b.generate(classes, factory, setOf("Node"), null, null)
+        val nodeB = newEdge!!.b.generate(classes, factory, setOf("Node"), null, null)
         // Identify containing graph
         val graphElement = toGraph!!.generate(classes, factory, setOf("Node"), null, null)
         // Get Edge EObject
@@ -151,7 +152,7 @@ class AddEdge(/*all*/       id: String,
             val toRegionID = eObject.eGet(eObject.eClass().getEStructuralFeature("toRegionID")) as String
             val edgeID = eObject.eGet(eObject.eClass().getEStructuralFeature("edgeID")) as String
             
-            return AddEdge(id,  nodeAID,  nodeBID,  toRegionID, edgeID,   null, null)
+            return AddEdge(id,  nodeAID,  nodeBID,  toRegionID, edgeID,   null, null, nodeBGraph = null)
         }
     }
 

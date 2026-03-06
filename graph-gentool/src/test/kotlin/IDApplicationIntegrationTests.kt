@@ -247,7 +247,9 @@ class IDApplicationIntegrationTests {
         Assertions.assertEquals(10, outputEnv.branchGraphs.size)
 
         for (deltaSequence in outputEnv.branchDeltas) {
-            Assertions.assertEquals(100, deltaSequence[0].getAtomicLength())
+            Assertions.assertEquals(
+                100,
+                deltaSequence[0].getAtomicLength())
         }
     }
 

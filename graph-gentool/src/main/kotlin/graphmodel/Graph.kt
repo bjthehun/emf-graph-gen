@@ -223,7 +223,7 @@ class Graph(
         if (node == null) {
             node = allRegions()
                 .map { r -> r.graph.findNodeById(id) }
-                .first()
+                .firstOrNull()
         }
         return node
     }
