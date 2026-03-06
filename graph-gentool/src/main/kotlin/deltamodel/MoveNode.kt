@@ -77,6 +77,17 @@ class MoveNode(/*all*/ id: String,
     }
 
     /**
+     * Moves [node] from the node set of [fromGraph] to the node set of [toGraph],
+     * after applying all [edgeImplications].
+     */
+    override fun apply() {
+        flatten()
+        edgeImplications.forEach { it.apply() }
+        fromGraph!!.nodes.remove(node)
+        toGraph!!.nodes.add(node!!)
+    }
+
+    /**
      * Returns the number of atomic [DeltaOperation]s required.
      * In order to move one node, additional [MoveEdge] operations are required for each [graphmodel.Edge]
      * that start from [node].

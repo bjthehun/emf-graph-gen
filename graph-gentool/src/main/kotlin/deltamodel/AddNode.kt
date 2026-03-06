@@ -18,6 +18,7 @@ package deltamodel
 
 import ecore.EcoreHandler
 import graphmodel.Graph
+import graphmodel.Label
 import graphmodel.Node
 import graphmodel.Region
 import graphmodel.SimpleNode
@@ -39,13 +40,38 @@ class AddNode(/*all*/       operationID: String,
               /*with id*/   val nodeID: String,
               /*all*/       private val nodeType: NodeType,
               /*with id*/   val toRegionID: String = "root",
-              /*one-way */  val node: Node?,
-              /*one-way */  val containingGraph: Graph?) : DeltaOperation(operationID) {
+              /*one-way*/  var node: Node?,
+              /*one-way*/  val containingGraph: Graph?) : DeltaOperation(operationID) {
 
     private val description = "AddNode"
 
     override fun flatten(): List<DeltaOperation> {
         return listOf(this)
+    }
+
+    /**
+     * Creates a new [Node] with [nodeID] and [nodeName].
+     * If [nodeType] == Region, this node also is a [Region],
+     * else it is a [SimpleNode] with [Label.GREY] as label.
+     */
+    override fun apply() {
+        val node =
+            if (nodeType == NodeType.SIMPLE) {
+                SimpleNode(
+                    id = nodeID,
+                    name = nodeName,
+                    label = Label.GREY
+                )
+            } else {
+                Region(
+                    id = nodeID,
+                    name = nodeName,
+                    graph = Graph(
+                        id = Graph.generateId()
+                    )
+                )
+            }
+        containingGraph!!.nodes.add(node)
     }
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
@@ -93,7 +119,7 @@ class AddNode(/*all*/       operationID: String,
             nodeElement,
             nodeEClass.getEStructuralFeature("id") as EAttribute,
             null,
-            node.id
+            node!!.id
         ))
         if (node is SimpleNode) {
             // 3. Set label
@@ -105,8 +131,9 @@ class AddNode(/*all*/       operationID: String,
             ))
         }
         else if (node is Region) {
+            val region = node as Region
             // Retrieve graph EObject of region
-            val regionGraphEObject = node.graph.generate(classes, factory, setOf(), null, null)
+            val regionGraphEObject = region.graph.generate(classes, factory, setOf(), null, null)
             // 4. Create Region Graph
             changes.add(changeFactory.createCreateEObjectChange(
                 regionGraphEObject

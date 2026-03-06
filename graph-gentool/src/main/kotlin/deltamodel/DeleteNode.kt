@@ -165,6 +165,16 @@ class DeleteNode(/*all*/        id: String,
         return nodeCosts
     }
 
+    /**
+     * Delete all edges leading to or from this node (see [edgeImplications]), and then
+     * also delete [node] from [containingGraph].
+     */
+    override fun apply() {
+        flatten()
+        edgeImplications.forEach { it -> it.apply() }
+        containingGraph!!.nodes.remove(node)
+    }
+
     private fun countAllGraphElements(graph: Graph): Int {
         return graph.simpleSize() + graph.allRegions()
                 .sumOf { region -> countAllGraphElements(region.graph) }

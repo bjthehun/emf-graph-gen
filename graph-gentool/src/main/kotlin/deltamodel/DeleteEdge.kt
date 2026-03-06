@@ -122,6 +122,10 @@ class DeleteEdge(/*all*/    id: String,
         return 1
     }
 
+    override fun apply() {
+        containingGraph!!.edges.remove(edgeToDelete!!)
+    }
+
     override fun deepEquals(other: Any): Boolean {
         if(other is DeleteEdge){
             return nodeAID == other.nodeAID && nodeBID == other.nodeBID &&

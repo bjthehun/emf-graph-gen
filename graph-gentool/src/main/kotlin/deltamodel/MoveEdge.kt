@@ -50,6 +50,14 @@ class MoveEdge(/*all*/ id: String,
         return listOf(this)
     }
 
+    /**
+     * Removes [edge] from the edge set of [oldGraph] and inserts it into the edge set of [newGraph].
+     */
+    override fun apply() {
+        oldGraph!!.edges.remove(edge)
+        newGraph!!.edges.add(edge!!)
+    }
+
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                           label: EEnum?, nodeType: EEnum?): EObject {
         val operation = factory.create(classes[description])

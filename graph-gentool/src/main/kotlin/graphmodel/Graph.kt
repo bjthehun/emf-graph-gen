@@ -218,6 +218,16 @@ class Graph(
         return null
     }
 
+    fun findNodeById(id: String): Node? {
+        var node = nodes.find { n -> n.id == id }
+        if (node == null) {
+            node = allRegions()
+                .map { r -> r.graph.findNodeById(id) }
+                .first()
+        }
+        return node
+    }
+
     fun allRegions(): List<Region> {
         return nodes.filterIsInstance<Region>()
     }

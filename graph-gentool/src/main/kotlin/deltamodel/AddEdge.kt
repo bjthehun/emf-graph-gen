@@ -38,7 +38,7 @@ class AddEdge(/*all*/       id: String,
               /*with id*/   val nodeBID: String,
               /*with id*/   val toRegionID: String? = "root",
               /*with id*/   val edgeID: String,
-              /*one-way */  val newEdge: Edge?,
+              /*one-way */  var newEdge: Edge?,
               /*one-way */  val toGraph: Graph?) : DeltaOperation(id) {
 
     private val description = "AddEdge"
@@ -65,6 +65,19 @@ class AddEdge(/*all*/       id: String,
 
         this.buffer = operation
         return operation
+    }
+
+    /**
+     * Creates a new edge and adds it to the edge set of [toGraph].
+     */
+    override fun apply() {
+        // Create new edge
+        newEdge = Edge(
+            edgeID,
+            a = toGraph!!.findNodeById(nodeAID)!!,
+            b = toGraph.findNodeById(nodeBID)!!
+        )
+        toGraph.edges.add(newEdge!!)
     }
    
     override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {

@@ -58,6 +58,10 @@ class ChangeLabel(/*all*/       id: String,
         return operation
     }
 
+    override fun apply() {
+        node!!.label = newLabel
+    }
+
     override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Get SimpleNode
         val nodeElement = node!!.generate(

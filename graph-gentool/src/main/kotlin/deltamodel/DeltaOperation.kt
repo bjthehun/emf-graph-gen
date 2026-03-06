@@ -51,6 +51,10 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
      */
     abstract fun getAtomicLength(): Int
 
+    /**
+     * Applies the operation with its given parameters.
+     */
+    abstract fun apply()
 
     abstract fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>>
 
