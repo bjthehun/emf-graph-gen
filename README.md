@@ -47,7 +47,6 @@ You find the catalogue of possible arguments in the next section.
 Short | Argument (--arg)| Default | Description
 --- | --- | --- | ---
 -- | *output directory*  | ``"./"`` |                Explicit first parameter. An existing or not existing directory Path in the form "a/b/c". If not existing, it will be created. If the directory contains a generated model set, files are overwritten in case of equal names.
-``-i`` | ``--with_eids``| ``false`` | Flag to select the metamodel (graph + deltas) either without (false) or with (true) unique UUIDS. See sections *Graph-* and *Delta Metamodel* for more information.
 ``-s``|  ``model_size``     | ``1024`` |      Sum of nodes and edges in the generated base model (INT)
 ``-n``| ``edges_per_node``  | ``1.0`` |        Number of edge elements per node element (DOUBLE). This value influences edge_distortion and is influenced by allow_partitions.
 ``-d``| ``edge_distortion``   | ``0.0`` |      Probability 0...1 that an edge crosses region boundaries (DOUBLE). This value is influenced by allow_partitions.
@@ -61,7 +60,7 @@ Short | Argument (--arg)| Default | Description
 ``-u`` | ``--random_seed``| ``0`` | Random seed for the strict deterministic random generation algorithm (INT).
 ``-o`` | ``--edit_probabilities`` | ``"15:5:5:5:25:25:20"`` | Edit probabilities (int) seperated by ':'. The order is ADD_SIMPLE, ADD_REGION, DELETE_NODE, MOVE_NODE, CHANGE_LABEL, ADD_EDGE, DELETE_EDGE. The sum of all probabilities must be 100. "
 
-**(1) Connectedness** 
+#### (1) Connectedness
 
 In general, a graph has partitions if two or more subgraphs without connecting edges can be identified. In the case of the graph-gentool, we use stricter definition of connectedness to improve computation complexity: Edges between nodes of different regions are not traversed to check for partitions. Consequently, a graph has no partitions if the each sub-graph has no partition ignoring incoming and outgoing edges AND the set of regions form a composite structure (true by construction).
 
@@ -126,7 +125,7 @@ Change operations are choosen with the following percentages.
 
 Executed via gradle (example call from the project root).
 
-```
+```sh
  gradle run --args="./out -c 1 -d 0.1 -e -f 0.8 -n 3 -r 0.2 -s 10000 -l 100"
 ```
 
@@ -163,16 +162,11 @@ The graph has the following properties:
 * A Region is a Node that contains a Graph. We call it a Sub-Graph.
 * An Edge can connect Nodes out of different Sub-Graphs (Cross-Hierarchy). We call such an Edge *distorted*. An Edge is posessed by the (Sub-)Graph where its first Node is located in.
 
-**The graph metamodel exists in two variants: with and without EcoreIDs. You can select the metamodel via the input arguments.**
 
-:zap: **The according delta metamodel (with- or without) IDs is selected accordingly!**
-
-Graph metamodel without IDs:
-![](doc/../doc/model_graph_noids.png)
 
 ---
 
-Graph metamodel with IDs:
+Graph metamodel:
 ![](doc/../doc/model_graph_ids.png)
 
 **Implementation Details**
@@ -198,10 +192,5 @@ This leads to a tree composite hierarchy. Regions closer to the root contain (ha
 
 ## Delta Metamodel
 
-Delta metamodel without IDs:
-![](doc/../doc/model_delta_noids.png)
-
----
-
-Delta metamodel with IDs:
+Delta metamodel:
 ![](doc/../doc/model_delta_ids.png)
