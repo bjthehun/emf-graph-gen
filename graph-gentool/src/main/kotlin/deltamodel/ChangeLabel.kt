@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Label
 import graphmodel.Node
@@ -62,15 +63,9 @@ class ChangeLabel(/*all*/       id: String,
         node!!.label = newLabel
     }
 
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Get SimpleNode
-        val nodeElement = node!!.generate(
-            ecoreHandler.getClassMap(),
-            ecoreHandler.getModelFactory(),
-            nodeType = null,
-            filter = setOf(),
-            label = null
-        )
+        val nodeElement = eObjectInventor.getMappingForNode(node!!)
         // Translate old and new enums
         val labelENumInEcore = ecoreHandler.getEnumMap()["Label"]!!
         val oldLabelInEcore  = labelENumInEcore.getEEnumLiteral(oldLabel.toString())
@@ -83,8 +78,8 @@ class ChangeLabel(/*all*/       id: String,
             eChangeFactory.createReplaceSingleAttributeChange(
                 nodeElement,
                 nodeElement.eClass().getEStructuralFeature("label") as EAttribute,
-                oldLabelInEcore,
-                newLabelInEcore
+                oldLabelInEcore.name,
+                newLabelInEcore.name
             )
         )
         return changes

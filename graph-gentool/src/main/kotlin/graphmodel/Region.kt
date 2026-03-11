@@ -23,7 +23,7 @@ import org.eclipse.emf.ecore.EObject
 import util.GraphStats
 import java.util.*
 
-class Region(id: String, name: String, val graph: Graph, serializeWithIDs: Boolean = false) : Node(id, name), EObjectSource {
+class Region(id: String, name: String, val graph: Graph) : Node(id, name), EObjectSource {
 
     private val description = "Region"
 
@@ -37,12 +37,15 @@ class Region(id: String, name: String, val graph: Graph, serializeWithIDs: Boole
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                                    label: EEnum?, nodeType: EEnum?): EObject {
-        if (filter.contains("Node")) {
+        if (super.buffer == null) {
             val region = factory.create(classes[description])
             super.buffer = region
+        }
+
+        if (filter.contains("Node")) {
+            val region = buffer!!
             val nameAttribute = region.eClass().getEStructuralFeature("name")
             val graph = region.eClass().getEStructuralFeature("graph")
-
             val idAttribute = region.eClass().getEStructuralFeature("id")
             region.eSet(idAttribute, id)
 

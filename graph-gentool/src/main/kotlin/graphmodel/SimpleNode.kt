@@ -34,7 +34,10 @@ class SimpleNode(id: String, name: String, var label: Label) : Node(id, name), E
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                           label: EEnum?, nodeType: EEnum?): EObject {
-        val node = buffer ?: factory.create(classes[description])
+        if (buffer != null) {
+            return buffer!!
+        }
+        val node = factory.create(classes[description])
         val nameAttribute = node.eClass().getEStructuralFeature("name")
         val labelAttribute = node.eClass().getEStructuralFeature("label")
 
@@ -43,7 +46,6 @@ class SimpleNode(id: String, name: String, var label: Label) : Node(id, name), E
 
         val idAttribute = node.eClass().getEStructuralFeature("id")
         node.eSet(idAttribute, id)
-
         node.eSet(nameAttribute, super.name)
         node.eSet(labelAttribute, labelEnum.getEEnumLiteral(this.label.name))
 

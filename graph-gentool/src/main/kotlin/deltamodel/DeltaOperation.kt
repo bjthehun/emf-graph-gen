@@ -17,6 +17,7 @@
 package deltamodel
 
 import ecore.DeepComparable
+import ecore.EObjectInventor
 import ecore.EObjectSource
 import ecore.IDComparable
 import ecore.EcoreHandler
@@ -56,7 +57,10 @@ abstract class DeltaOperation(val id: String) : EObjectSource, DeepComparable, I
      */
     abstract fun apply()
 
-    abstract fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>>
+    abstract fun toVitruviusEChanges(
+        eObjectInventor: EObjectInventor,
+        ecoreHandler: EcoreHandler
+    ): List<EChange<Any>>
 
 
 

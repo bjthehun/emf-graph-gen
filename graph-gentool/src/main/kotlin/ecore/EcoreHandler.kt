@@ -28,21 +28,34 @@ import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
 import java.util.*
 
-class EcoreHandler(metamodel: URI, model: URI, registryExtension: String): EcoreMetamodelHandler(metamodel) {
+/**
+ * An [ecore.EcoreHandler] handles multiple models with a shared metamodel [EPackage] under their given [URI].
+ */
+class EcoreHandler(metamodel: URI, registryExtension: String): EcoreMetamodelHandler(metamodel) {
 
-    private var modelResource: Resource? = null
 
     init {
         Resource.Factory.Registry.INSTANCE.extensionToFactoryMap[registryExtension] = XMIResourceFactoryImpl()
-        modelResource = resourceSet!!.getResource(model, true)
     }
 
-    fun getModelRoot(): EObject {
-        return modelResource!!.contents[0]
+    fun getRegisteredModels(): List<URI?> {
+        return resourceSet!!.resources.map { it.uri }
     }
 
-    fun saveModel() {
-        modelResource!!.save(null)
+    fun getResource(modelUri: URI): Resource {
+        return resourceSet!!.getResource(modelUri, false)!!
+    }
+
+    fun registerNewModel(modelUri: URI) {
+        resourceSet!!.getResource(modelUri, true)
+    }
+
+    fun getModelRoot(modelUri: URI): EObject {
+        return resourceSet!!.getResource(modelUri, false).contents[0]
+    }
+
+    fun saveModel(modelUri: URI) {
+        resourceSet!!.getResource(modelUri, false).save(null)
     }
 
 }

@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Edge
 import graphmodel.Graph
@@ -90,13 +91,13 @@ class MoveEdge(/*all*/ id: String,
         return false
     }
 
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // EObject factory
         val eClasses = ecoreHandler.getClassMap()
         val eFactory = ecoreHandler.getModelFactory()
 
         // Create edge EObject
-        val edgeEObject = edge!!.generate(eClasses, eFactory, setOf(), null, null)
+        val edgeEObject = eObjectInventor.getMappingForEdge(edge!!)
         // Create graph EObjects
         val fromGraphEObject = oldGraph!!.generate(eClasses, eFactory, setOf(), null, null)
         val toGraphEObject = newGraph!!.generate(eClasses, eFactory, setOf(), null, null)

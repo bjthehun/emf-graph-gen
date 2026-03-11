@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 import deltamodel.DeltaSequence
+import ecore.EObjectInventor
 import ecore.EcoreHandler
-import ecore.EcoreMetamodelHandler
 import graphmodel.Edge
 import graphmodel.Graph
 import graphmodel.Node
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
-import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
 import picocli.CommandLine
 import util.Branch
 import util.Configuration
@@ -175,17 +174,19 @@ fun runWithConfig(configuration: Configuration): Environment {
     val graphMetaName = "idlabelgraph"
     val deltaMetaName = "idgraphdelta"
 
-    val graphMetamodelPath: String = createTempMetamodelFile(graphMetaName).toString()
+    val graphMetamodelPath: String = openMetamodelFile(graphMetaName).toString()
     val graphMetamodelURI = URI.createFileURI(graphMetamodelPath)
     val baseModel = createOutputBaseModelFile(configuration)
-    val ecoreHandler = EcoreHandler(graphMetamodelURI, baseModel, "labelgraph")
+    val ecoreHandler = EcoreHandler(graphMetamodelURI, "labelgraph")
 
     println("Generating Base Graph ECORE models...")
 
     val factory = ecoreHandler.getModelFactory()
     val classMap = ecoreHandler.getClassMap()
     val label = ecoreHandler.getEnumMap()["Label"]!!
-    val graphRoot = ecoreHandler.getModelRoot()
+    ecoreHandler.registerNewModel(baseModel)
+    val graphRoot = ecoreHandler.getModelRoot(baseModel)
+
     val graph = Graph("root", LinkedList<Node>(), LinkedList<Edge>(), graphRoot)
     val originGraphFactory = GraphFactory(graph, configuration)
 
@@ -194,7 +195,7 @@ fun runWithConfig(configuration: Configuration): Environment {
 
     graph.generate(classMap, factory, setOf("Node"), label)
     graph.generate(classMap, factory, setOf("Edge"), label)
-    ecoreHandler.saveModel()
+    ecoreHandler.saveModel(baseModel)
 
     val endTimeGenerate = System.currentTimeMillis()
     println("Generation Time: ${endTimeGenerate - startTimeGenerate} ms")
@@ -203,7 +204,7 @@ fun runWithConfig(configuration: Configuration): Environment {
 
     if (configuration.branchNumber > 0) {
         println("Creating Branches...")
-        val deltaMetamodelPath: String = createTempMetamodelFile(deltaMetaName).toString()
+        val deltaMetamodelPath: String = openMetamodelFile(deltaMetaName).toString()
         val deltaMetamodelURI = URI.createFileURI(deltaMetamodelPath)
         val branches = createOutputBranchModelFiles(configuration, File(baseModel.toFileString()))
         processBranches(ecoreHandler, branches, configuration, graphMetamodelURI, deltaMetamodelURI, environment)
@@ -213,11 +214,12 @@ fun runWithConfig(configuration: Configuration): Environment {
 }
 
 fun processBranches(
-    ecoreHandler: EcoreHandler,
+    graphEcoreHandler: EcoreHandler,
     branches: List<Branch>, configuration: Configuration, graphMetamodelURI: URI,
     deltaMetamodelURI: URI, environment: Environment
 ) {
 
+    val eObjectInventor = EObjectInventor(graphEcoreHandler)
     val editProbabilities = configuration.editProbabilities.split(":").map { it.toInt() }
     val changeOperationWeights: List<Pair<String, Int>> = listOf(
         Pair("ADD_SIMPLE", editProbabilities[0]),
@@ -231,8 +233,7 @@ fun processBranches(
 
     for ((branchIndex, branch) in branches.withIndex()) {
 
-        val graphEcoreHandlerSet: MutableList<EcoreHandler> = LinkedList()
-        val deltaEcoreHandlerSet: MutableList<EcoreHandler> = LinkedList()
+        val deltaEcoreHandler = EcoreHandler(deltaMetamodelURI, "graphdelta")
 
         environment.branchGraphs.add(mutableListOf())
         environment.branchDeltas.add(mutableListOf())
@@ -242,18 +243,18 @@ fun processBranches(
 
         for((versionIndex, branchVersion) in branch.modelURIs.withIndex()){
 
-            val graphEcoreHandler = EcoreHandler(
-                metamodel = graphMetamodelURI, model = branchVersion, "labelgraph")
-            val deltaEcoreHandler = EcoreHandler(
-                metamodel = deltaMetamodelURI, model = branch.deltaURIs[versionIndex], "graphdelta")
+            graphEcoreHandler.registerNewModel(branchVersion)
+            deltaEcoreHandler.registerNewModel(branch.deltaURIs[versionIndex])
 
-            if(versionIndex == 0) {
-                graphRoot = graphEcoreHandler.getModelRoot()
+
+            if (versionIndex == 0) {
+                graphEcoreHandler.registerNewModel(branchVersion)
+                graphRoot = graphEcoreHandler.getModelRoot(branchVersion)
                 //Graph ID is set in the constructor
                 graph = Graph(null, LinkedList<Node>(), LinkedList<Edge>(), graphRoot, isRoot = true)
+                // Ensure that graph EObject is generated
+                graph.generate(graphEcoreHandler.getClassMap(), graphEcoreHandler.getModelFactory(), setOf("Node, Edge"), null, null)
             }
-            graphEcoreHandlerSet.add(graphEcoreHandler)
-            deltaEcoreHandlerSet.add(deltaEcoreHandler)
         }
 
         println("Generating Edit Sequence Branch $branchIndex...")
@@ -266,13 +267,16 @@ fun processBranches(
 
         graphProcessor.exec(
             { stage: Stage ->
-                persistGraph(graphEcoreHandlerSet[iterationCounter], stage, environment)
+                persistGraph(graphEcoreHandler, branch.modelURIs[iterationCounter], stage, environment)
                 iterationCounter++
             },
             { stage: Stage ->
-                persistDeltas(ecoreHandler, deltaEcoreHandlerSet[deltaIterationCounter], stage, environment)
+                persistDeltas(configuration, graphEcoreHandler, eObjectInventor, deltaEcoreHandler, branch.deltaURIs[deltaIterationCounter], stage, environment)
                 deltaIterationCounter++
-            })
+            },
+            ecoreHandler = graphEcoreHandler,
+            produceVitruviusChange = configuration.outputVitruviusChanges,
+            eObjectInventor = eObjectInventor)
 
         val endTimeProcessing = System.currentTimeMillis()
         println("Processing Time: ${endTimeProcessing - startTimeProcessing} ms")
@@ -281,12 +285,13 @@ fun processBranches(
 }
 
 fun persistGraph(
-    graphEcoreHandler: EcoreHandler, stage: Stage, environment: Environment
+    graphEcoreHandler: EcoreHandler, branchVersion: URI, stage: Stage, environment: Environment
 ) {
+
     val graphClassMap = graphEcoreHandler.getClassMap()
     val graphLabels = graphEcoreHandler.getEnumMap()["Label"]!!
     val graphFactory = graphEcoreHandler.getModelFactory()
-    val graphRoot = graphEcoreHandler.getModelRoot()
+    val graphRoot = graphEcoreHandler.getModelRoot(branchVersion)
     val rootGraph = Graph(stage.graph.id, LinkedList<Node>(), LinkedList<Edge>(), graphRoot,
         isRoot = true)
     rootGraph.apply(stage.graph)
@@ -294,28 +299,41 @@ fun persistGraph(
     rootGraph.generate(graphClassMap, graphFactory, setOf("Edge"), graphLabels)
 
     environment.branchGraphs[environment.branchGraphs.size-1].add(rootGraph)
-    graphEcoreHandler.saveModel()
+    graphEcoreHandler.saveModel(branchVersion)
 }
 
 fun persistDeltas(
+    configuration: Configuration,
     graphEcoreHandler: EcoreHandler,
-    deltaEcoreHandler: EcoreHandler, stage: Stage, environment: Environment
+    eObjectInventor: EObjectInventor,
+    deltaEcoreHandler: EcoreHandler,
+    deltaURI: URI, stage: Stage, environment: Environment
 ) {
     val deltaClassMap = deltaEcoreHandler.getClassMap()
     val deltaLabels = deltaEcoreHandler.getEnumMap()["Label"]!!
     val deltaNodeTypes = deltaEcoreHandler.getEnumMap()["NodeType"]!!
-    val deltaRoot = deltaEcoreHandler.getModelRoot()
+    val deltaRoot = deltaEcoreHandler.getModelRoot(deltaURI)
     val rootSequence = DeltaSequence(stage.deltaSequence.deltaOperations, deltaRoot)
-//    val vitruvChanges = rootSequence.toVitruviusEChanges(graphEcoreHandler)
-//
-//    val resourceSet = ResourceSetImpl()
-//    val res = resourceSet.createResource(URI.createFileURI("foobAr"))
-//    res.contents.addAll(vitruvChanges)
-//    res.save(null)
+    environment.branchDeltas[environment.branchDeltas.size - 1].add(rootSequence)
 
-    rootSequence.generate(deltaClassMap, deltaEcoreHandler.getModelFactory(), TreeSet(), deltaLabels, deltaNodeTypes)
-    environment.branchDeltas[environment.branchDeltas.size-1].add(rootSequence)
-    deltaEcoreHandler.saveModel()
+    if (configuration.outputVitruviusChanges) {
+        val vitruvChanges = rootSequence.toVitruviusEChanges(eObjectInventor, graphEcoreHandler)
+        val resource = deltaEcoreHandler.getResource(deltaURI)
+        resource.contents.add(eObjectInventor.rootObject)
+        resource.contents.addAll(vitruvChanges)
+        resource.save(null)
+    }
+    else {
+        rootSequence.generate(
+            deltaClassMap,
+            deltaEcoreHandler.getModelFactory(),
+            TreeSet(),
+            deltaLabels,
+            deltaNodeTypes
+        )
+
+        deltaEcoreHandler.saveModel(deltaURI)
+    }
 }
 
 fun createOutputBaseModelFile(configuration: Configuration): URI {
@@ -384,23 +402,7 @@ fun createOutputBranchModelFiles(configuration: Configuration, baseModel: File):
     return results
 }
 
-fun createTempMetamodelFile(title: String): Path {
-    val tempPath = Files.createTempFile(title, ".ecore")
-    Runtime.getRuntime().addShutdownHook(Thread {
-        run() {
-            Files.delete(tempPath)
-        }
-    })
-
-    object {}.javaClass.getResourceAsStream("$title.ecore").use { input ->
-        if (input != null)
-            BufferedReader(InputStreamReader(input)).use { reader ->
-                Files.newBufferedWriter(tempPath).use { writer ->
-                    reader.copyTo(writer)
-                    writer.flush()
-                }
-            }
-    }
-
-    return tempPath
+fun openMetamodelFile(title: String): Path {
+    val tempPath = "src/main/resources/" + title + ".ecore"
+    return Path.of(tempPath)
 }

@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Graph
 import graphmodel.Node
@@ -125,13 +126,13 @@ class MoveNode(/*all*/ id: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // EObject factory
         val eClasses = ecoreHandler.getClassMap()
         val eFactory = ecoreHandler.getModelFactory()
 
         // Create edge EObject
-        val edgeEObject = node!!.generate(eClasses, eFactory, setOf(), null, null)
+        val edgeEObject = eObjectInventor.getMappingForNode(node!!)
         // Create graph EObjects
         val fromGraphEObject = fromGraph!!.generate(eClasses, eFactory, setOf(), null, null)
         val toGraphEObject = toGraph!!.generate(eClasses, eFactory, setOf(), null, null)
@@ -140,7 +141,7 @@ class MoveNode(/*all*/ id: String,
             .getEStructuralFeature("edges") as EReference
 
         val atomicEChangeFactory = ATOMIC_CHANGE_FACTORY()
-        val changes = ArrayList(edgeImplications.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) })
+        val changes = ArrayList(edgeImplications.flatMap { op -> op.toVitruviusEChanges(eObjectInventor, ecoreHandler) })
         // 1. RemoveEReference from old graph
         changes.add(
             atomicEChangeFactory.createRemoveReferenceChange(

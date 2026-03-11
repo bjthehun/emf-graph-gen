@@ -163,9 +163,15 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
             while (missingDistortedEdges > 0){
                 val randomGraphSource = subGraphs[random.nextInt(0, subGraphs.size)]
                 val randomGraphTarget = subGraphs[random.nextInt(0, subGraphs.size)]
-                if(randomGraphSource.nodes.size == 0 || randomGraphTarget.nodes.size == 0) continue
+                if (randomGraphSource.nodes.isEmpty() || randomGraphTarget.nodes.isEmpty()) {
+                    continue
+                }
                 val randomCrossRegionNodeSource = randomGraphSource.randomNode(random)
                 val randomCrossRegionNodeTarget = randomGraphTarget.randomNode(random)
+                // Prevent duplicate edges
+                if (randomGraphSource.edges.any { e -> e.a == randomCrossRegionNodeSource && e.b == randomCrossRegionNodeTarget }) {
+                    continue
+                }
                 val edge = Edge(Graph.generateId(), randomCrossRegionNodeSource, randomCrossRegionNodeTarget)
                 randomGraphSource.edges.add(edge)
                 edges.add(edge)

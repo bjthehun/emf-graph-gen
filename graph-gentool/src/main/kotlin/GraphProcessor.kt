@@ -15,6 +15,8 @@
  */
 
 import deltamodel.*
+import ecore.EObjectInventor
+import ecore.EcoreHandler
 import graphmodel.*
 import util.Configuration
 import util.GraphStats
@@ -81,7 +83,14 @@ class GraphProcessor(
      * Iteration time of the implemented naive (try-check-rollback) algorithm is non-deterministic but termination is
      * guaranteed because addNode is always viable as a 1-impact operation.
      */
-    fun exec(persistGraph: (Stage) -> Unit, persistDeltas: (Stage) -> Unit): Stage {
+    fun exec(
+        persistGraph: (Stage) -> Unit,
+        persistDeltas: (Stage) -> Unit,
+        produceVitruviusChange: Boolean = false,
+        ecoreHandler: EcoreHandler? = null,
+        eObjectInventor: EObjectInventor? = null): Stage {
+
+        assert(!produceVitruviusChange || (ecoreHandler != null && eObjectInventor != null))
 
         var currentEditLength = 0
         var workingRegionName: String? = null
@@ -118,11 +127,16 @@ class GraphProcessor(
             if (currentEditLength + impact <= conf.branchEditLength) {
                 //apply stage
                 if (operation != null) {
-                    operation.apply()
                     assert(
-                        impact == operation.flatten().size,
+                        impactType != ImpactType.ATOMIC || impact == operation.flatten().size,
                         { "Miscount for ${operation}: expected $impact ops, got ${operation.flatten().size} ops" })
+                    operation.apply()
                     globalDeltaSequence.deltaOperations.add(operation)
+
+                    // Also ensure that EObjects exist for persisting VitruviusChanges
+                    if (produceVitruviusChange) {
+                        operation.toVitruviusEChanges(eObjectInventor!!, ecoreHandler!!)
+                    }
                 }
 
                 currentEditLength += impact
@@ -145,7 +159,6 @@ class GraphProcessor(
     }
 
     private fun rollForOperation(operation: String, workingRegion: Region?): DeltaOperation? {
-        //println(operation)
         return when (operation) {
             "ADD_SIMPLE" -> addSimpleNode(workingRegion)
             "ADD_REGION" -> addRegion(workingRegion)
@@ -263,23 +276,6 @@ class GraphProcessor(
         if(node is SimpleNode){
             label = node.label
         }
-        if (node !is Region) {
-            //=====> THIS IS A RETURN!!!
-            return DeleteNode(
-                id = DeltaOperation.generateId(),
-                nodeName = node.name,
-                nodeID = node.id,
-                label = label,
-                fromRegionID = region?.id ?: "root",
-                nodeImplications = LinkedList(),
-                edgeImplications = LinkedList(),
-                node,
-                graph,
-                directDelete = true)
-        }
-
-        // ELSE IF IT IS A REGION:
-
         return DeleteNode(
             id = DeltaOperation.generateId(),
             nodeName = node.name,
@@ -291,35 +287,7 @@ class GraphProcessor(
             node,
             graph,
             directDelete = true)
-
     }
-
-    /**
-     * This operation deletes all [Edge] objects from the staged [Graph] containing the given [Node] either as start
-     * or end reference.
-     * The staged Graph is manipulated by this operation.
-     * The traversal happens recursively.
-     */
-//    private fun deleteEdgesContaining(region: Region?, graph: Graph, node: Node): List<DeleteEdge> {
-//        val edgesToDelete = graph.edges.filter { e -> e.a == node || e.b == node }
-//        val deleteOperations: MutableList<DeleteEdge> = LinkedList<DeleteEdge>()
-//        for (edge in edgesToDelete){
-//            graph.edges.remove(edge)
-//            deleteOperations.add(DeleteEdge(
-//                    id = DeltaOperation.generateId(),
-//                    nodeAID = edge.a.id,
-//                    nodeBID = edge.b.id,
-//                    fromRegionID = region?.id ?: "root",
-//                    edgeID = edge.id,
-//                    edgeToDelete = edge,
-//                    containingGraph = graph)
-//            )
-//        }
-//        graph.nodes.filterIsInstance<Region>().forEach { subRegion ->
-//            deleteOperations.addAll(deleteEdgesContaining(subRegion, subRegion.graph, node))
-//        }
-//        return deleteOperations
-//    }
 
     /**
      * Delete an [Edge] from the staged [Graph].

@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Edge
 import graphmodel.Graph
@@ -65,17 +66,17 @@ class DeleteEdge(/*all*/    id: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Set up EObject factory
         val classes = ecoreHandler.getClassMap()
         val factory = ecoreHandler.getModelFactory()
         // Retrieve containing Graph
         val graphEObject = containingGraph!!.generate(classes, factory, setOf(), null, null)
         // Retrieve Node EObjects
-        val nodeAEObject = edgeToDelete!!.a.generate(classes, factory, setOf("Node"), null, null)
-        val nodeBEObject = edgeToDelete.b.generate(classes, factory, setOf("Node"), null, null)
+        val nodeAEObject = eObjectInventor.getMappingForNode(edgeToDelete!!.a)
+        val nodeBEObject = eObjectInventor.getMappingForNode(edgeToDelete.b)
         // Retrieve Edge EObject
-        val edgeEObject = edgeToDelete.generate(classes, factory, setOf(), null, null)
+        val edgeEObject =  eObjectInventor.getMappingForEdge(edgeToDelete)
         val edgeEClass = edgeEObject.eClass()
 
         val edgeNodeRefs = edgeEClass.getEStructuralFeature("nodes") as EReference

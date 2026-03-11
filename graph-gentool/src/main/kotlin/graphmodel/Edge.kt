@@ -40,21 +40,24 @@ class Edge(
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
                                    label: EEnum?, nodeType: EEnum?): EObject {
-        val edge =
-            if (buffer == null)
-                factory.create(classes[description])
-            else
-                buffer!!
+        if (buffer != null) {
+            return buffer!!
+        }
+        val edge = factory.create(classes[description])
+        buffer = edge
 
+        a.generate(classes, factory, filter, label, nodeType)
+        b.generate(classes, factory, filter, label, nodeType)
 
         val idAttribute = edge.eClass().getEStructuralFeature("id")
         edge.eSet(idAttribute, id)
 
         val nodesReferences = edge.eClass().getEStructuralFeature("nodes")
         (edge.eGet(nodesReferences) as java.util.List<Any>).addAll(listOf(
-            a.buffer!!,
-            b.buffer!!
-        ))
+                a.buffer!!,
+                b.buffer!!
+            )
+        )
         buffer = edge
         return edge
     }

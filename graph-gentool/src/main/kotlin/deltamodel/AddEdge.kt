@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Edge
 import graphmodel.Graph
@@ -81,45 +82,47 @@ class AddEdge(/*all*/       id: String,
         toGraph.edges.add(newEdge!!)
     }
    
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         val changes = ArrayList<EChange<Any>>()
         // Set up EcoreMetamodelHandler for model element generation
 
-        val classes   = ecoreHandler.getClassMap()
-        val factory  = ecoreHandler.getModelFactory()
+        val classes  = ecoreHandler.getClassMap()
+        val factory = ecoreHandler.getModelFactory()
         // Set up EChangeFactory
         val changeFactory = TypeInferringAtomicEChangeFactory.getInstance()
-        // Get Node
-        val nodeA = newEdge!!.a.generate(classes, factory, setOf("Node"), null, null)
-        val nodeB = newEdge!!.b.generate(classes, factory, setOf("Node"), null, null)
+        // Assume that nodes exist
+        val nodeA = eObjectInventor.getMappingForNode(newEdge!!.a)
+        val nodeB = eObjectInventor.getMappingForNode(newEdge!!.b)
         // Identify containing graph
-        val graphElement = toGraph!!.generate(classes, factory, setOf("Node"), null, null)
+        val graphElement = toGraph!!.generate(classes, factory, setOf("Node, Edge"), null, null)
         // Get Edge EObject
-        val edge = newEdge!!.generate(classes, factory, setOf("Edge"), null, null)
+        val edgeEObject = eObjectInventor.getMappingForEdge(newEdge!!)
 
         // Change 1: CreateEdge
-        changes.add(changeFactory.createCreateEObjectChange(edge) as EChange<Any>)
+        changes.add(changeFactory.createCreateEObjectChange(edgeEObject) as EChange<Any>)
         // Change 2: SetEAttribute
-        val idAttribute = edge.eClass().getEStructuralFeature("id") as EAttribute
+        val idAttribute = edgeEObject.eClass().getEStructuralFeature("id") as EAttribute
         changes.add(changeFactory.createReplaceSingleAttributeChange(
-            edge,
+            edgeEObject,
             idAttribute,
             null,
-            edge.eGet(idAttribute))
+            id)
         )
 
 
         // Changes 3 and 4: InsertEReference
-        val nodesReference = edge.eClass().getEStructuralFeature("nodes") as EReference
-        changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeA, 0))
-        changes.add(changeFactory.createInsertReferenceChange(edge, nodesReference, nodeB, 0))
+        val nodesReference = edgeEObject.eClass().getEStructuralFeature("nodes") as EReference
+        changes.add(changeFactory.createInsertReferenceChange(edgeEObject, nodesReference, nodeA, 0))
+        changes.add(changeFactory.createInsertReferenceChange(edgeEObject, nodesReference, nodeB, 0))
+        // Ensure edge EObject is in graph EObject
+        val graphEdgeEReference = graphElement.eClass().getEStructuralFeature("edges") as EReference
 
         // Change 5: InsertEReference
         changes.add(
             changeFactory.createInsertReferenceChange(
                 graphElement,
-                graphElement.eClass().getEStructuralFeature("edges") as EReference,
-                edge,
+                graphEdgeEReference,
+                edgeEObject,
                 0))
 
         return changes

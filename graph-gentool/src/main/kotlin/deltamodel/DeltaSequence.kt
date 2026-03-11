@@ -17,6 +17,7 @@
 package deltamodel
 
 import ecore.DeepComparable
+import ecore.EObjectInventor
 import ecore.EObjectSource
 import ecore.EcoreHandler
 import ecore.IDComparable
@@ -106,7 +107,6 @@ class DeltaSequence(
         //recursively generate delta operations to EObjects
         deltaOperations.forEach { op -> op.generate(classes, factory, filter, label, nodeType) }
 
-        //(old) val flatOperationSequence: List<DeltaOperation> = deltaOperations.flatMap { op -> op.flatten() }
         //because of the newly introduced composition, we need no flattening.
         //All recursive operations are contained in their parent operations, they form a true tree.
         val flatEObjectSequence: List<EObject> = deltaOperations.map { op -> op.buffer!! }
@@ -118,8 +118,9 @@ class DeltaSequence(
         return deltaSequence
     }
 
-    fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
-        return deltaOperations.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) }
+    fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
+        // TODO map to correct metamodels
+        return deltaOperations.flatMap { op -> op.toVitruviusEChanges(eObjectInventor, ecoreHandler) }
     }
 
     override fun deepEquals(other: Any): Boolean {

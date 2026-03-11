@@ -62,9 +62,10 @@ class ApplicationIntegrationTests {
 
         val metamodelPath: String = object {}.javaClass.getResource("idlabelgraph.ecore")!!.path
         val metamodelURI = URI.createFileURI(metamodelPath)
-        val ecoreHandler = EcoreHandler(metamodelURI, expectedOutputURI, "labelgraph")
+        val ecoreHandler = EcoreHandler(metamodelURI, "labelgraph")
+        ecoreHandler.registerNewModel(expectedOutputURI)
 
-        val graphRoot = ecoreHandler.getModelRoot()
+        val graphRoot = ecoreHandler.getModelRoot(expectedOutputURI)
         val inputGraph = Graph(null, LinkedList<Node>(), LinkedList<Edge>(), graphRoot, isRoot = true)
 
         Assertions.assertEquals(outputGraph.getStats(true).toString(), inputGraph.getStats(true).toString())
@@ -95,11 +96,13 @@ class ApplicationIntegrationTests {
         val metamodelPath: String = object {}.javaClass.getResource("idgraphdelta.ecore")!!.path
         val metamodelURI = URI.createFileURI(metamodelPath)
 
-        val ecoreHandlerB0 = EcoreHandler(metamodelURI, expectedOutputURI_B0, "graphdelta")
-        val ecoreHandlerB1 = EcoreHandler(metamodelURI, expectedOutputURI_B1, "graphdelta")
+        val ecoreHandlerB0 = EcoreHandler(metamodelURI,  "graphdelta")
+        val ecoreHandlerB1 = EcoreHandler(metamodelURI,  "graphdelta")
+        ecoreHandlerB0.registerNewModel(expectedOutputURI_B0)
+        ecoreHandlerB1.registerNewModel(expectedOutputURI_B1)
 
-        val deltaEModelB0 = ecoreHandlerB0.getModelRoot()
-        val deltaEModelB1 = ecoreHandlerB1.getModelRoot()
+        val deltaEModelB0 = ecoreHandlerB0.getModelRoot(expectedOutputURI_B0)
+        val deltaEModelB1 = ecoreHandlerB1.getModelRoot(expectedOutputURI_B1)
         val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0)
         val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1)
 
@@ -140,11 +143,13 @@ class ApplicationIntegrationTests {
         val metamodelPath: String = object {}.javaClass.getResource("idgraphdelta.ecore")!!.path
         val metamodelURI = URI.createFileURI(metamodelPath)
 
-        val ecoreHandlerB0 = EcoreHandler(metamodelURI, expectedOutputURI_B0, "graphdelta")
-        val ecoreHandlerB1 = EcoreHandler(metamodelURI, expectedOutputURI_B1, "graphdelta")
+        val ecoreHandlerB0 = EcoreHandler(metamodelURI,  "graphdelta")
+        val ecoreHandlerB1 = EcoreHandler(metamodelURI,  "graphdelta")
+        ecoreHandlerB0.registerNewModel(expectedOutputURI_B0)
+        ecoreHandlerB1.registerNewModel(expectedOutputURI_B1)
 
-        val deltaEModelB0 = ecoreHandlerB0.getModelRoot()
-        val deltaEModelB1 = ecoreHandlerB1.getModelRoot()
+        val deltaEModelB0 = ecoreHandlerB0.getModelRoot(expectedOutputURI_B0)
+        val deltaEModelB1 = ecoreHandlerB1.getModelRoot(expectedOutputURI_B1)
         val inputDeltaSequenceB0 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB0)
         val inputDeltaSequenceB1 = DeltaSequence(LinkedList<DeltaOperation>(), deltaEModelB1)
 

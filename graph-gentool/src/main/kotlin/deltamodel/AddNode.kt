@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Graph
 import graphmodel.Label
@@ -55,7 +56,7 @@ class AddNode(/*all*/       operationID: String,
      * else it is a [SimpleNode] with [Label.GREY] as label.
      */
     override fun apply() {
-        val node =
+        node =
             if (nodeType == NodeType.SIMPLE) {
                 SimpleNode(
                     id = nodeID,
@@ -71,7 +72,7 @@ class AddNode(/*all*/       operationID: String,
                     )
                 )
             }
-        containingGraph!!.nodes.add(node)
+        containingGraph!!.nodes.add(node!!)
     }
 
     override fun generate(classes: Map<String, EClass>, factory: EFactory, filter: Set<String>,
@@ -94,7 +95,7 @@ class AddNode(/*all*/       operationID: String,
         return operation
     }
 
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Setup graph model factory
         val classes = ecoreHandler.getClassMap()
         val factory = ecoreHandler.getModelFactory()
@@ -102,12 +103,12 @@ class AddNode(/*all*/       operationID: String,
         val actualNodeType = ecoreHandler.getEnumMap()[nodeType.name]
 
         // Create node EObject
-        val nodeElement = node!!.generate(classes, factory, setOf("Node"),
-             label = if (nodeType == NodeType.SIMPLE) greyEnum else null,
-            actualNodeType)
+        val nodeElement = eObjectInventor.getMappingForNode(node!!)
         val nodeEClass = nodeElement.eClass()
         // Create graph EObject
         val graphElement = containingGraph!!.generate(classes, factory, setOf(), null, null)
+        // Insert node into graph
+        val graphNodeEReference = graphElement.eClass().getEStructuralFeature("nodes") as EReference
         // Setup change model factory
         val changeFactory = ATOMIC_CHANGE_FACTORY()
         val changes = ArrayList<EChange<Any>>()
@@ -127,7 +128,7 @@ class AddNode(/*all*/       operationID: String,
                 nodeElement,
                 nodeEClass.getEStructuralFeature("label") as EAttribute,
                 null,
-                greyEnum.getEEnumLiteral(0)
+                greyEnum.getEEnumLiteral(0).value
             ))
         }
         else if (node is Region) {
@@ -149,7 +150,7 @@ class AddNode(/*all*/       operationID: String,
         // 4./.6. Add to graph
         changes.add(changeFactory.createInsertReferenceChange(
             graphElement,
-            graphElement.eClass().getEStructuralFeature("nodes") as EReference,
+            graphNodeEReference,
             nodeElement,
             0
         ))

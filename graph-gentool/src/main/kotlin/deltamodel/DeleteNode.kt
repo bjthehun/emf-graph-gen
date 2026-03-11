@@ -16,6 +16,7 @@
 
 package deltamodel
 
+import ecore.EObjectInventor
 import ecore.EcoreHandler
 import graphmodel.Graph
 import graphmodel.Label
@@ -118,9 +119,7 @@ class DeleteNode(/*all*/        id: String,
         }
         result.add(this)
         // Deduplicate on top-level deletes
-        if (directDelete) {
-            println("Voodoo dolls")
-        }
+
         return if (directDelete) {
             result.distinctBy {
                 if (it is DeleteEdge) it.edgeID else if (it is DeleteNode) it.nodeID else it.id
@@ -130,16 +129,15 @@ class DeleteNode(/*all*/        id: String,
         }
     }
 
-    override fun toVitruviusEChanges(ecoreHandler: EcoreHandler): List<EChange<Any>> {
+    override fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
         // Apply DeleteEdges, DeleteNodes for implications first
-        val edgeImplicationEChanges = edgeImplications.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) }
-        val nodeImplicationEChanges = nodeImplications.flatMap { op -> op.toVitruviusEChanges(ecoreHandler) }
+        val edgeImplicationEChanges = edgeImplications.flatMap { op -> op.toVitruviusEChanges(eObjectInventor, ecoreHandler) }
+        val nodeImplicationEChanges = nodeImplications.flatMap { op -> op.toVitruviusEChanges(eObjectInventor, ecoreHandler) }
 
         // EObject Factory
-
         val eClasses = ecoreHandler.getClassMap()
         val eFactory = ecoreHandler.getModelFactory()
-        val nodeEObject = node!!.generate(eClasses, eFactory, setOf("Node"), null, null)
+        val nodeEObject = eObjectInventor.getMappingForNode(node!!)
         val nodeEClass = nodeEObject.eClass()
 
         // EChange creation
@@ -156,7 +154,7 @@ class DeleteNode(/*all*/        id: String,
             changes.add(eChangeCreator.createReplaceSingleAttributeChange(
                 nodeEObject,
                 nodeEClass.getEStructuralFeature("label") as EAttribute,
-                labelEnumValue,
+                labelEnumValue.name,
                 null
             ))
         }
@@ -210,7 +208,7 @@ class DeleteNode(/*all*/        id: String,
         operation.eSet(idAttribute, id)
 
         //Because it can be a Region without a label
-        if(this.label !== null){
+        if (this.label !== null){
             val labelAttribute = operation.eClass().getEStructuralFeature("label")
             operation.eSet(labelAttribute, label!!.getEEnumLiteral(this.label.name))
         }
