@@ -100,7 +100,6 @@ class AddNode(/*all*/       operationID: String,
         val classes = ecoreHandler.getClassMap()
         val factory = ecoreHandler.getModelFactory()
         val greyEnum = ecoreHandler.getEnumMap()["Label"]!!
-        val actualNodeType = ecoreHandler.getEnumMap()[nodeType.name]
 
         // Create node EObject
         val nodeElement = eObjectInventor.getMappingForNode(node!!)
