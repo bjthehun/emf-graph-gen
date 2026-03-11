@@ -92,13 +92,19 @@ data class Configuration(
      * This operation does not lead to a stepwise export of the delta models.
      */
     val stepwiseExport: Boolean = false,
-    
+
     /**
      * Toggle if the processor should output the delta sequences in the Vitruvius EChange format,
      * or the deltagraph format.
      * This option implies that withEIDs be set to true.
      */
     val outputVitruviusChanges: Boolean = false,
+
+    /**
+     * Number of graphs that are generated in one run.
+     * Branches are evenly distributed over each graph.
+     */
+    val graphNumber: Int = 1,
 
     val editProbabilities: String = "15:5:5:5:25:25:20"
 
@@ -112,6 +118,8 @@ data class Configuration(
         assert(branchNumber >= 0)
         assert(branchEditLength >= 0)
         assert(branchEditFocus in 0.0..1.0)
+        assert(graphNumber in 1..5)
+        assert(branchNumber % graphNumber == 0)
         assert(!(stepwiseExport && atomicCounting))
 
         if (branchNumber > 0 && branchEditLength == 0) {

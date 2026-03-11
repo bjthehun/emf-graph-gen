@@ -45,7 +45,7 @@ class Checksum : Callable<Int> {
 
     @CommandLine.Option(
         names = ["-s", "--model_size"],
-        description = ["Sum of nodes and edges in the generated base model (INT)."]
+        description = ["Sum of nodes and edges in the generated base models (INT)."]
     )
     var modelSize: Int = defaultConfiguration.modelSize
 
@@ -71,14 +71,14 @@ class Checksum : Callable<Int> {
 
     @CommandLine.Option(
         names = ["-p", "--allow_partitions"],
-        description = ["Allow (true) or forbid (false) the graph to have unconnected parts (BOOL)." +
+        description = ["Allow (true) or forbid (false) the graphs to have unconnected parts (BOOL)." +
                 "This value influences edges_per_node."]
     )
     var allowPartitions: Boolean = defaultConfiguration.allowPartitions
 
     @CommandLine.Option(
         names = ["-c", "--branch_number"],
-        description = ["The number of branches (variants) to create from the final base model (INT)."]
+        description = ["The number of branches (variants) to create from the base models (INT)."]
     )
     var branchNumber: Int = defaultConfiguration.branchNumber
 
@@ -98,9 +98,9 @@ class Checksum : Callable<Int> {
     @CommandLine.Option(
         names = ["-e", "--atomic_counting"],
         description = ["Toggle, how the edit length is counted. true for atomic counting and false for accumulative counting. " +
-                "If true, the resulting edit sequence will have exactly the same size as specified by the branch edit length. " +
+                "If true, the resulting edit sequences will have exactly the same size as specified by the branch edit length. " +
                 "If false, the number of explicit (high-level) edits is counted (although writing the atomic edits to the " +
-                "edit sequence). For example, let there be a region R containing 3 nodes and 2 edges. If delete R is the edit. " +
+                "edit sequence). For example, let there be a region R containing 3 nodes and 2 edges. Assume R is deleted.  " +
                 "If R gets deleted, its composite contents must be deleted as well. The result are 6 atomic edits which are " +
                 "added to the edit sequence (one explicit edit and 5 implicit edits). If atomic counting is used, the counter " +
                 "increments by 6. If no atomic counting is used, the counter increments by 1."]
@@ -119,7 +119,7 @@ class Checksum : Callable<Int> {
 
     @CommandLine.Option(
         names = ["-u", "--random_seed"],
-        description = ["Random seed for the strict deterministic random generation algorithms"]
+        description = ["Random seed for the strict deterministic random generation algorithms."]
     )
     var userRandomSeed: Int = 0
 
@@ -128,19 +128,26 @@ class Checksum : Callable<Int> {
         description = ["Edit probabilities (int) seperated by ':'. " +
                 "The order is ADD_SIMPLE, ADD_REGION, DELETE_NODE, MOVE_NODE, CHANGE_LABEL, ADD_EDGE, DELETE_EDGE. " +
                 "The sum of all probabilities must be 100. " +
+                "The probability of ADD_SIMPLE must be at least 1." +
                 "Default: 15:5:5:5:25:25:20"]
     )
     var editProbabilities: String = "15:5:5:5:25:25:20"
-
 
     @CommandLine.Option(
         names = ["-v", "--vitruvius_changes"],
         description = ["Toggle the output format of the delta sequences." +
                 "If set to false, output the sequences in the deltagraph format." +
-                "If set to true, output the sequences in the Vitruvius EChange format." +
-                "This option implies -i/--with_eids"]
+                "If set to true, output the sequences in the Vitruvius EChange format."]
     )
     var outputVitruviusChanges: Boolean = false
+
+    @CommandLine.Option(
+        names = ["-g", "--graph_number"],
+        description = ["Number of graphs to generate. " +
+            "Each graph has a separate Ecore metamodel (idlabelgraph, idlabelgraph2...), though all metamodels are structually equal." +
+            "Branches are evenly distributed across graphs."]
+    )
+    var numberOfGraphs: Int = 1
 
     override fun call(): Int {
         runWithConfig(
@@ -158,7 +165,8 @@ class Checksum : Callable<Int> {
                 atomicCounting,
                 stepwiseExport,
                 outputVitruviusChanges,
-                editProbabilities = editProbabilities
+                graphNumber = numberOfGraphs,
+                editProbabilities
             )
         )
         return 0
@@ -169,54 +177,57 @@ fun main(args: Array<String>) {
     exitProcess(CommandLine(Checksum()).execute(*args))
 }
 
-fun runWithConfig(configuration: Configuration): Environment {
+fun runWithConfig(configuration: Configuration) {
 
-    val graphMetaName = "idlabelgraph"
-    val deltaMetaName = "idgraphdelta"
+    for (i in 1..configuration.graphNumber) {
+        val graphMetaName = "idlabelgraph$i"
+        val deltaMetaName = "idgraphdelta"
 
-    val graphMetamodelPath: String = openMetamodelFile(graphMetaName).toString()
-    val graphMetamodelURI = URI.createFileURI(graphMetamodelPath)
-    val baseModel = createOutputBaseModelFile(configuration)
-    val ecoreHandler = EcoreHandler(graphMetamodelURI, "labelgraph")
+        val graphMetamodelPath: String = openMetamodelFile(graphMetaName).toString()
+        val graphMetamodelURI = URI.createFileURI(graphMetamodelPath)
+        val baseModel = createOutputBaseModelFile(configuration.outputPath, i)
+        val ecoreHandler = EcoreHandler(graphMetamodelURI, "labelgraph$i")
 
-    println("Generating Base Graph ECORE models...")
+        println("Generating Base Graph ECORE model $i...")
 
-    val factory = ecoreHandler.getModelFactory()
-    val classMap = ecoreHandler.getClassMap()
-    val label = ecoreHandler.getEnumMap()["Label"]!!
-    ecoreHandler.registerNewModel(baseModel)
-    val graphRoot = ecoreHandler.getModelRoot(baseModel)
+        val factory = ecoreHandler.getModelFactory()
+        val classMap = ecoreHandler.getClassMap()
+        val label = ecoreHandler.getEnumMap()["Label"]!!
+        ecoreHandler.registerNewModel(baseModel)
+        val graphRoot = ecoreHandler.getModelRoot(baseModel)
 
-    val graph = Graph("root", LinkedList<Node>(), LinkedList<Edge>(), graphRoot)
-    val originGraphFactory = GraphFactory(graph, configuration)
+        val graph = Graph("root", LinkedList<Node>(), LinkedList<Edge>(), graphRoot)
+        val originGraphFactory = GraphFactory(graph, configuration)
 
-    val startTimeGenerate = System.currentTimeMillis()
-    originGraphFactory.exec()
+        val startTimeGenerate = System.currentTimeMillis()
+        originGraphFactory.exec()
 
-    graph.generate(classMap, factory, setOf("Node"), label)
-    graph.generate(classMap, factory, setOf("Edge"), label)
-    ecoreHandler.saveModel(baseModel)
+        graph.generate(classMap, factory, setOf("Node"), label)
+        graph.generate(classMap, factory, setOf("Edge"), label)
+        ecoreHandler.saveModel(baseModel)
 
-    val endTimeGenerate = System.currentTimeMillis()
-    println("Generation Time: ${endTimeGenerate - startTimeGenerate} ms")
+        val endTimeGenerate = System.currentTimeMillis()
+        println("Generation Time: ${endTimeGenerate - startTimeGenerate} ms")
 
-    val environment = Environment(graph, LinkedList(), LinkedList())
+        val environment = Environment(graph, LinkedList(), LinkedList())
 
-    if (configuration.branchNumber > 0) {
-        println("Creating Branches...")
-        val deltaMetamodelPath: String = openMetamodelFile(deltaMetaName).toString()
-        val deltaMetamodelURI = URI.createFileURI(deltaMetamodelPath)
-        val branches = createOutputBranchModelFiles(configuration, File(baseModel.toFileString()))
-        processBranches(ecoreHandler, branches, configuration, graphMetamodelURI, deltaMetamodelURI, environment)
+        if (configuration.branchNumber > 0) {
+            println("Creating Branches...")
+            val deltaMetamodelPath: String = openMetamodelFile(deltaMetaName + i).toString()
+            val deltaMetamodelURI = URI.createFileURI(deltaMetamodelPath)
+            val branches = createOutputBranchModelFiles(configuration, File(baseModel.toFileString()), i)
+            processBranches(ecoreHandler, branches, configuration, deltaMetamodelURI, environment, i)
+        }
+
+
     }
-
-    return environment
 }
 
 fun processBranches(
     graphEcoreHandler: EcoreHandler,
-    branches: List<Branch>, configuration: Configuration, graphMetamodelURI: URI,
-    deltaMetamodelURI: URI, environment: Environment
+    branches: List<Branch>, configuration: Configuration,
+    deltaMetamodelURI: URI, environment: Environment,
+    i: Int
 ) {
 
     val eObjectInventor = EObjectInventor(graphEcoreHandler)
@@ -233,7 +244,7 @@ fun processBranches(
 
     for ((branchIndex, branch) in branches.withIndex()) {
 
-        val deltaEcoreHandler = EcoreHandler(deltaMetamodelURI, "graphdelta")
+        val deltaEcoreHandler = EcoreHandler(deltaMetamodelURI, "graphdelta$i")
 
         environment.branchGraphs.add(mutableListOf())
         environment.branchDeltas.add(mutableListOf())
@@ -319,7 +330,7 @@ fun persistDeltas(
     if (configuration.outputVitruviusChanges) {
         val vitruvChanges = rootSequence.toVitruviusEChanges(eObjectInventor, graphEcoreHandler)
         val resource = deltaEcoreHandler.getResource(deltaURI)
-        resource.contents.add(eObjectInventor.rootObject)
+        resource.contents.clear()
         resource.contents.addAll(vitruvChanges)
         resource.save(null)
     }
@@ -336,11 +347,11 @@ fun persistDeltas(
     }
 }
 
-fun createOutputBaseModelFile(configuration: Configuration): URI {
+fun createOutputBaseModelFile(outputPath: String, i: Int): URI {
 
     val templateName = "template_withid" 
 
-    val basePath = Paths.get(configuration.outputPath, "base.labelgraph")
+    val basePath = Paths.get(outputPath, "base.labelgraph$i")
     Files.createDirectories(basePath.parent)
 
     object {}.javaClass.getResourceAsStream("$templateName.labelgraph").use { input ->
@@ -356,7 +367,7 @@ fun createOutputBaseModelFile(configuration: Configuration): URI {
     return URI.createFileURI(basePath.toString())
 }
 
-fun createOutputBranchModelFiles(configuration: Configuration, baseModel: File): List<Branch> {
+fun createOutputBranchModelFiles(configuration: Configuration, baseModel: File, modelType: Int): List<Branch> {
     val results: MutableList<Branch> = LinkedList()
 
     var content: List<String> = LinkedList()
@@ -380,7 +391,7 @@ fun createOutputBranchModelFiles(configuration: Configuration, baseModel: File):
         }
         for (v: Int in 0..<numberVersions) {
 
-            val deltaPath = Paths.get(dir, "model_$v.graphdelta")
+            val deltaPath = Paths.get(dir, "model_$v.graphdelta$modelType")
             Files.createDirectories(deltaPath.parent)
             Files.write(deltaPath, content)
             val deltaURI = URI.createFileURI(deltaPath.toString())
@@ -388,7 +399,7 @@ fun createOutputBranchModelFiles(configuration: Configuration, baseModel: File):
 
             val modelURI = URI.createFileURI(
                 baseModel.copyTo(
-                    File("$dir/model_$v.labelgraph"),
+                    File("$dir/model_$v.labelgraph$modelType"),
                     overwrite = true
                 ).path
             )
@@ -403,6 +414,6 @@ fun createOutputBranchModelFiles(configuration: Configuration, baseModel: File):
 }
 
 fun openMetamodelFile(title: String): Path {
-    val tempPath = "src/main/resources/" + title + ".ecore"
+    val tempPath = "src/main/resources/$title.ecore"
     return Path.of(tempPath)
 }

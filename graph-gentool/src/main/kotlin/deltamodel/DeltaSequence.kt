@@ -119,7 +119,6 @@ class DeltaSequence(
     }
 
     fun toVitruviusEChanges(eObjectInventor: EObjectInventor, ecoreHandler: EcoreHandler): List<EChange<Any>> {
-        // TODO map to correct metamodels
         return deltaOperations.flatMap { op -> op.toVitruviusEChanges(eObjectInventor, ecoreHandler) }
     }
 
