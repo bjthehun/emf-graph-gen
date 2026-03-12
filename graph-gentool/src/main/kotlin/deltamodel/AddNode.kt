@@ -121,8 +121,15 @@ class AddNode(/*all*/       operationID: String,
             null,
             node!!.id
         ))
+        // 3. Set name
+        changes.add(changeFactory.createReplaceSingleAttributeChange(
+            nodeElement,
+            nodeEClass.getEStructuralFeature("name") as EAttribute,
+            null,
+            node!!.name
+        ))
         if (node is SimpleNode) {
-            // 3. Set label
+            // 4. Set label
             changes.add(changeFactory.createReplaceSingleAttributeChange(
                 nodeElement,
                 nodeEClass.getEStructuralFeature("label") as EAttribute,
@@ -134,11 +141,11 @@ class AddNode(/*all*/       operationID: String,
             val region = node as Region
             // Retrieve graph EObject of region
             val regionGraphEObject = region.graph.generate(classes, factory, setOf(), null, null)
-            // 4. Create Region Graph
+            // 5. Create Region Graph
             changes.add(changeFactory.createCreateEObjectChange(
                 regionGraphEObject
             ) as EChange<Any>)
-            // 5. Add Reference of Region to Graph
+            // 6. Add Reference of Region to Graph
             changes.add(changeFactory.createInsertReferenceChange(
                 nodeElement,
                 nodeEClass.getEStructuralFeature("graph") as EReference,
@@ -146,7 +153,7 @@ class AddNode(/*all*/       operationID: String,
                 0
             ))
         }
-        // 4./.6. Add to graph
+        // 5./.7. Add to graph
         changes.add(changeFactory.createInsertReferenceChange(
             graphElement,
             graphNodeEReference,

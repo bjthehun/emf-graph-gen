@@ -165,6 +165,13 @@ class DeleteNode(/*all*/        id: String,
             nodeID!!,
             null
         ))
+        //2. Unset name
+        changes.add(eChangeCreator.createReplaceSingleAttributeChange(
+            nodeEObject,
+            nodeEClass.getEStructuralFeature("name") as EAttribute,
+            nodeName,
+            null,
+        ))
         // 2. RemoveEReference of Graph
         val graphEObject = containingGraph!!.generate(eClasses, eFactory, setOf(), null, null)
         changes.add(eChangeCreator.createRemoveReferenceChange(

@@ -55,10 +55,10 @@ class ApplicationIntegrationTests {
             outputPath = "./out/test"
         )
 
-        val outputGraph = runWithConfig(configuration).baseGraph
+        val outputGraph = runWithConfig(configuration)[0].baseGraph
 
         //there should be a non-empty file:
-        val expectedOutputURI = URI.createFileURI(File(configuration.outputPath + "/base.labelgraph").absolutePath)
+        val expectedOutputURI = URI.createFileURI(File(configuration.outputPath + "/base.labelgraph1").absolutePath)
 
         val metamodelPath: String = object {}.javaClass.getResource("idlabelgraph.ecore")!!.path
         val metamodelURI = URI.createFileURI(metamodelPath)
@@ -87,17 +87,17 @@ class ApplicationIntegrationTests {
             outputPath = "./out/test"
         )
 
-        val outputDeltas = runWithConfig(configuration).branchDeltas
+        val outputDeltas = runWithConfig(configuration)[0].branchDeltas
 
         //there should be a non-empty file:
-        val expectedOutputURI_B0 = URI.createFileURI(File(configuration.outputPath + "/b_0/model_0.graphdelta").absolutePath)
-        val expectedOutputURI_B1 = URI.createFileURI(File(configuration.outputPath + "/b_1/model_0.graphdelta").absolutePath)
+        val expectedOutputURI_B0 = URI.createFileURI(File(configuration.outputPath + "/b_0/model_0.graphdelta1").absolutePath)
+        val expectedOutputURI_B1 = URI.createFileURI(File(configuration.outputPath + "/b_1/model_0.graphdelta1").absolutePath)
 
         val metamodelPath: String = object {}.javaClass.getResource("idgraphdelta.ecore")!!.path
         val metamodelURI = URI.createFileURI(metamodelPath)
 
-        val ecoreHandlerB0 = EcoreHandler(metamodelURI,  "graphdelta")
-        val ecoreHandlerB1 = EcoreHandler(metamodelURI,  "graphdelta")
+        val ecoreHandlerB0 = EcoreHandler(metamodelURI,  "graphdelta1")
+        val ecoreHandlerB1 = EcoreHandler(metamodelURI,  "graphdelta1")
         ecoreHandlerB0.registerNewModel(expectedOutputURI_B0)
         ecoreHandlerB1.registerNewModel(expectedOutputURI_B1)
 
@@ -134,17 +134,17 @@ class ApplicationIntegrationTests {
             outputPath = "./out/test"
         )
 
-        val outputDeltas = runWithConfig(configuration).branchDeltas
+        val outputDeltas = runWithConfig(configuration)[0].branchDeltas
 
         //there should be a non-empty file:
-        val expectedOutputURI_B0 = URI.createFileURI(File(configuration.outputPath + "/b_0/model_0.graphdelta").absolutePath)
-        val expectedOutputURI_B1 = URI.createFileURI(File(configuration.outputPath + "/b_1/model_0.graphdelta").absolutePath)
+        val expectedOutputURI_B0 = URI.createFileURI(File(configuration.outputPath + "/b_0/model_0.graphdelta1").absolutePath)
+        val expectedOutputURI_B1 = URI.createFileURI(File(configuration.outputPath + "/b_1/model_0.graphdelta1").absolutePath)
 
         val metamodelPath: String = object {}.javaClass.getResource("idgraphdelta.ecore")!!.path
         val metamodelURI = URI.createFileURI(metamodelPath)
 
-        val ecoreHandlerB0 = EcoreHandler(metamodelURI,  "graphdelta")
-        val ecoreHandlerB1 = EcoreHandler(metamodelURI,  "graphdelta")
+        val ecoreHandlerB0 = EcoreHandler(metamodelURI,  "graphdelta1")
+        val ecoreHandlerB1 = EcoreHandler(metamodelURI,  "graphdelta1")
         ecoreHandlerB0.registerNewModel(expectedOutputURI_B0)
         ecoreHandlerB1.registerNewModel(expectedOutputURI_B1)
 
@@ -185,7 +185,7 @@ class ApplicationIntegrationTests {
                 randomSeed = i
             )
 
-            val outputEnv = runWithConfig(configuration)
+            val outputEnv = runWithConfig(configuration)[0]
 
             Assertions.assertEquals(10, outputEnv.branchDeltas.size)
             Assertions.assertEquals(10, outputEnv.branchGraphs.size)
@@ -219,7 +219,7 @@ class ApplicationIntegrationTests {
                 randomSeed = i
             )
 
-            val outputEnv = runWithConfig(configuration)
+            val outputEnv = runWithConfig(configuration)[0]
 
             Assertions.assertEquals(5, outputEnv.branchDeltas.size)
             Assertions.assertEquals(5, outputEnv.branchGraphs.size)
@@ -247,7 +247,7 @@ class ApplicationIntegrationTests {
             randomSeed = 100
         )
 
-        val outputEnv = runWithConfig(configuration)
+        val outputEnv = runWithConfig(configuration)[0]
 
         Assertions.assertEquals(10, outputEnv.branchDeltas.size)
         Assertions.assertEquals(10, outputEnv.branchGraphs.size)

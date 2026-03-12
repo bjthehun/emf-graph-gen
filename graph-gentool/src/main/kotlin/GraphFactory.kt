@@ -13,13 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import ecore.NodeNameGenerator
 import graphmodel.*
 import util.Configuration
 import util.GraphStats
 import java.util.*
 import kotlin.random.Random
 
-class GraphFactory(private val root: Graph, private val conf: Configuration) {
+class GraphFactory(
+    private val root: Graph,
+    private val conf: Configuration,
+    private val nameGenerator: NodeNameGenerator = NodeNameGenerator("a")
+) {
 
     private val random: Random = Random(conf.randomSeed)
     private val rootStats: GraphStats = root.getStats(true)
@@ -30,7 +35,7 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
         assert(rootStats.allSimpleNodes.size == 0)
     }
 
-    fun exec(): Unit{
+    fun exec() {
         //calculate target stats
         val numberOfNodes: Int = (conf.modelSize / (1 + conf.edgesPerNode)).toInt()
         val numberOfRegions: Int = (numberOfNodes * conf.regionProbability).toInt()
@@ -69,8 +74,13 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
     private fun regions(numberOfRegions: Int): MutableList<Region> {
         val regions: MutableList<Region> = LinkedList<Region>()
         repeat(numberOfRegions) { i ->
-            val r = Region(Graph.generateId(), "R$i", Graph(Graph.generateId(), LinkedList<Node>(), LinkedList<Edge>(),
-                null))
+            val r = Region(
+                Graph.generateId(),
+                nameGenerator.generateRegionName(),
+                Graph(Graph.generateId(), LinkedList<Node>(), LinkedList<Edge>(),
+                    null
+                )
+            )
             regions.add(r)
         }
         return regions
@@ -86,7 +96,11 @@ class GraphFactory(private val root: Graph, private val conf: Configuration) {
     private fun simpleNodes(numberOfSimpleNodes: Int): MutableList<SimpleNode> {
         val simpleNodes: MutableList<SimpleNode> = LinkedList<SimpleNode>()
         repeat(numberOfSimpleNodes) { i ->
-            val n = SimpleNode(Graph.generateId(), "N$i", SimpleNode.randomLabel(random))
+            val n = SimpleNode(
+                Graph.generateId(),
+                nameGenerator.generateSimpleNodeName(),
+                SimpleNode.randomLabel(random)
+            )
             simpleNodes.add(n)
         }
         return simpleNodes

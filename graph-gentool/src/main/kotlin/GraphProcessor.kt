@@ -17,6 +17,7 @@
 import deltamodel.*
 import ecore.EObjectInventor
 import ecore.EcoreHandler
+import ecore.NodeNameGenerator
 import graphmodel.*
 import util.Configuration
 import util.GraphStats
@@ -35,6 +36,7 @@ import kotlin.random.Random
 class GraphProcessor(
     private val graph: Graph,
     private val conf: Configuration,
+    private val nameGenerator: NodeNameGenerator,
     private val weights: List<Pair<String, Int>>
 ) {
 
@@ -81,7 +83,7 @@ class GraphProcessor(
     /**
      * Loop until the desired edit length is reached.
      * Iteration time of the implemented naive (try-check-rollback) algorithm is non-deterministic but termination is
-     * guaranteed because addNode is always viable as a 1-impact operation.
+     * guaranteed because [AddNode] is always viable as a 1-impact operation.
      */
     fun exec(
         persistGraph: (Stage) -> Unit,
@@ -134,9 +136,9 @@ class GraphProcessor(
                     globalDeltaSequence.deltaOperations.add(operation)
 
                     // Also ensure that EObjects exist for persisting VitruviusChanges
-                    if (produceVitruviusChange) {
-                        operation.toVitruviusEChanges(eObjectInventor!!, ecoreHandler!!)
-                    }
+//                    if (produceVitruviusChange) {
+//                        operation.toVitruviusEChanges(eObjectInventor!!, ecoreHandler!!)
+//                    }
                 }
 
                 currentEditLength += impact
@@ -211,7 +213,7 @@ class GraphProcessor(
 
         val op = AddNode(
             operationID = DeltaOperation.generateId(),
-            nodeName = "SN_"+UUID.randomUUID().toString(),
+            nodeName = nameGenerator.generateSimpleNodeName(),
             nodeID = Graph.generateId(),
             nodeType = NodeType.SIMPLE,
             toRegionID = region?.id ?: "root",
@@ -232,7 +234,7 @@ class GraphProcessor(
         val targetGraph = region?.graph ?: stage.graph
         val op = AddNode(
             operationID = DeltaOperation.generateId(),
-            nodeName = "RE_"+UUID.randomUUID().toString(),
+            nodeName = nameGenerator.generateRegionName(),
             nodeID = Graph.generateId(),
             nodeType = NodeType.REGION,
             toRegionID = region?.id ?: "root",

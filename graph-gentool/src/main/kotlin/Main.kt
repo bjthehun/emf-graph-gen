@@ -16,6 +16,7 @@
 import deltamodel.DeltaSequence
 import ecore.EObjectInventor
 import ecore.EcoreHandler
+import ecore.NodeNameGenerator
 import graphmodel.Edge
 import graphmodel.Graph
 import graphmodel.Node
@@ -177,11 +178,14 @@ fun main(args: Array<String>) {
     exitProcess(CommandLine(Checksum()).execute(*args))
 }
 
-fun runWithConfig(configuration: Configuration) {
+fun runWithConfig(configuration: Configuration): List<Environment> {
+    val nameGenerator = NodeNameGenerator()
+    val environments = LinkedList<Environment>()
 
     for (i in 1..configuration.graphNumber) {
         val graphMetaName = "idlabelgraph$i"
         val deltaMetaName = "idgraphdelta"
+        nameGenerator.setNamePrefix("G$i")
 
         val graphMetamodelPath: String = openMetamodelFile(graphMetaName).toString()
         val graphMetamodelURI = URI.createFileURI(graphMetamodelPath)
@@ -197,7 +201,7 @@ fun runWithConfig(configuration: Configuration) {
         val graphRoot = ecoreHandler.getModelRoot(baseModel)
 
         val graph = Graph("root", LinkedList<Node>(), LinkedList<Edge>(), graphRoot)
-        val originGraphFactory = GraphFactory(graph, configuration)
+        val originGraphFactory = GraphFactory(graph, configuration, nameGenerator)
 
         val startTimeGenerate = System.currentTimeMillis()
         originGraphFactory.exec()
@@ -216,18 +220,19 @@ fun runWithConfig(configuration: Configuration) {
             val deltaMetamodelPath: String = openMetamodelFile(deltaMetaName + i).toString()
             val deltaMetamodelURI = URI.createFileURI(deltaMetamodelPath)
             val branches = createOutputBranchModelFiles(configuration, File(baseModel.toFileString()), i)
-            processBranches(ecoreHandler, branches, configuration, deltaMetamodelURI, environment, i)
+            processBranches(ecoreHandler, branches, configuration, deltaMetamodelURI, environment, i, nameGenerator)
         }
 
-
+        environments.push(environment)
     }
+    return environments
 }
 
 fun processBranches(
     graphEcoreHandler: EcoreHandler,
     branches: List<Branch>, configuration: Configuration,
     deltaMetamodelURI: URI, environment: Environment,
-    i: Int
+    i: Int, nameGenerator: NodeNameGenerator
 ) {
 
     val eObjectInventor = EObjectInventor(graphEcoreHandler)
@@ -271,7 +276,7 @@ fun processBranches(
         println("Generating Edit Sequence Branch $branchIndex...")
 
         val startTimeProcessing = System.currentTimeMillis()
-        val graphProcessor = GraphProcessor(graph!!, configuration, changeOperationWeights)
+        val graphProcessor = GraphProcessor(graph!!, configuration, nameGenerator, changeOperationWeights)
 
         var iterationCounter = 0
         var deltaIterationCounter = 0
