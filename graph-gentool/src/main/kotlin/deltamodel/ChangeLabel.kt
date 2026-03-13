@@ -33,7 +33,8 @@ class ChangeLabel(/*all*/       id: String,
                   /*with id*/   val nodeID: String,
                   /*all*/       val newLabel: Label,
                   /*all*/       val oldLabel: Label,
-                  /*one-way*/   val node: SimpleNode?) : DeltaOperation(id) {
+                  /*one-way*/   val node: SimpleNode?
+) : DeltaOperation(id) {
 
     private val description = "ChangeLabel"
 
@@ -100,7 +101,7 @@ class ChangeLabel(/*all*/       id: String,
 
     companion object {
 
-        fun parse(eObject: EObject, ): ChangeLabel {
+        fun parse(eObject: EObject): ChangeLabel {
 
             val newLabel = Label.entries[(eObject.eGet(eObject.eClass().getEStructuralFeature("newLabel")) as EEnumLiteralImpl).value]
             val oldLabel = Label.entries[(eObject.eGet(eObject.eClass().getEStructuralFeature("oldLabel")) as EEnumLiteralImpl).value]
