@@ -14,11 +14,13 @@ class NodeNameGenerator(
 
     fun generateSimpleNodeName(): String {
         val counter = simpleNodeCount++
-        return "SN|$prefix|$counter"
+        val counterString = "$counter".padStart(18, '0');
+        return "SN|$prefix|$counterString"
     }
 
     fun generateRegionName(): String {
         val counter = regionCount++
-        return "RE|$prefix|$counter"
+        val counterString = "$counter".padStart(18, '0');
+        return "RE|$prefix|$counterString"
     }
 }
